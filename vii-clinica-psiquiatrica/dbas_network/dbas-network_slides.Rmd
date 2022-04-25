@@ -1,0 +1,207 @@
+---
+title: "A network approach of Insomnia and Dysfunctional Beliefs and Attitudes About Sleep"
+subtitle: "VII Congresso Clínica Psiquiátrica 2022"
+author: 
+  - "Marwin M I B Carmo"
+  - "Renatha El Rafihi Ferreira"
+date: "<img src ='img/fapesp-ipq.png' width = '30%'>"
+output:
+  xaringan::moon_reader:
+    css: ["xaringan-themer.css", "css/custom.css"]
+    nature:
+      #titleSlideClass: ["right", "top", "custom.css"]
+      slideNumberFormat: "%current%"
+      highlightStyle: github
+      highlightLines: true
+      ratio: 16:9
+      countIncrementalSlides: true
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(
+  fig.width=9, fig.height=3.5, fig.retina=3,
+  out.width = "100%",
+  cache = FALSE,
+  echo = TRUE,
+  message = FALSE, 
+  warning = FALSE,
+  hiline = TRUE
+)
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+library(xaringanExtra)
+library(dplyr)
+library(ggplot2)
+
+style_duo_accent(
+  title_slide_background_color ="#FFFFFF",
+  title_slide_text_color = "#024F84",
+  primary_color = "#024F84",
+  secondary_color = "#FF961C",
+  inverse_header_color = "#FFFFFF",
+  text_color = "#515151",
+  text_font_size = "1.2rem",
+  table_row_even_background_color = "#D6EAF8"# "#a1c7cf",
+)
+```
+
+```{r xaringan-logo, echo=FALSE}
+xaringanExtra::use_logo(
+  image_url = c("img/fapesp-ipq.png"),
+  width = "365px",
+  height = "79px",
+  position = css_position(top = "1em", right = "1em"),
+  exclude_class = c("my-title", "inverse", "hide_logo")
+)
+```
+
+```{r xaringan-scribble, echo=FALSE}
+xaringanExtra::use_scribble()
+```
+
+```{r database , include=FALSE}
+dados <- readr::read_csv("G:/Documentos/ProjetosR/ASONO/act_insonia/dados/base_arrumada_1409.csv")
+```
+
+
+# Introduction
+
+Negatively toned cognitive activity triggers arousal and distress, channeling attention and monitoring to sleep, and creating distorted perceptions.
+
+Challenging unhelpful beliefs about sleep is a crucial element of cognitive-behavioral therapy for insomnia.
+
+Understanding how this network of beliefs connects to insomnia severity may provide leads to help targeted interventions.
+---
+
+# Objective
+
+To use a network analysis of cross-sectional data to investigate the associations of dysfunctional beliefs and attitudes about sleep with overall insomnia severity, in a sample of Brazilian adults.
+
+---
+
+# Method
+
+**Participants**: 1376 adults, aged 18 to 59 years, both with and without insomnia symptoms.
+
+**Instruments**:
+
+- Insomnia Severity Scale (ISI);
+
+- Dysfunctional Beliefs and Attitudes about Sleep Scale (DBAS-16). 
+
+---
+# Method
+
+Gaussian Graphical Models were estimated using the GLASSO regularization and EBIC model selection with hyperparameter set to 0.5.
+
+- network describing the associations among overall insomnia severity and the four factors of DBAS-16
+
+- network describing the associations among insomnia severity and each of the individual items of DBAS-16.
+
+The stability of node strength was estimated using a case dropping bootstrap procedure (1000 iterations). Node centrality was assessed by strength, closeness, and betweenness
+
+---
+
+## Resultados
+
+```{r renda, include=FALSE}
+dados_renda <- dados |> 
+  pull(renda)
+
+dados_etnia <- dados |> 
+  filter(!is.na(etnia)) |> 
+  count(etnia) |> 
+  mutate(p = n/sum(n))
+
+dados_escolaridade <- dados |> 
+  count(escolaridade) |> 
+  mutate(p = n/sum(n))
+
+dados_med <- dados |> 
+  count(medicacao_semana) |> 
+  mutate(p = n/sum(n))
+
+dados_regiao <- dados |> 
+  count(regiao) |> 
+  mutate(p = n/sum(n))
+
+```
+
+
+A média de idade dos participantes foi de `r round(mean(pull(dados, idade)), 1)` $\pm$ `r round(sd(pull(dados, idade)), 1)` anos. Dos `r nrow(dados)` participantes, `r sum(pull(dados, sexo) == "F")` são do sexo feminino. A mediana da renda familiar mensal por participante foi de R$ `r median(dados_renda, na.rm = TRUE)`,00. 
+
+Em relação a etnia, `r round(pull(select(filter(dados_etnia, etnia == 1), p)),3)*100`% se declararam brancos, `r round(sum(pull(select(filter(dados_etnia, etnia == 2 | etnia == 3), p))),3)*100`% pretos ou pardos, `r round(pull(select(filter(dados_etnia, etnia == 4), p)),3)*100`% amarelos e `r round(pull(select(filter(dados_etnia, etnia == 5), p)),3)*100`% indígenas.
+
+Participantes com ensino superior completo compuseram `r round(pull(select(filter(dados_escolaridade, escolaridade == 9), p)),3)*100`% da amostra.
+
+`r round(sum(pull(select(filter(dados_med, medicacao_semana > 0 &  medicacao_semana <= 7), p))),3)*100`% dos participantes afirmou fazer uso de medicação para dormir ao menos uma vez na semana, enquanto `r round(pull(select(filter(dados_med, medicacao_semana == 7), p)),3)*100`% relataram usar remédios para dormir todos os dias.
+
+A maior parte dos participantes são residentes da Região Sudeste (`r round(pull(select(filter(dados_regiao, regiao == "Região Sudeste"), p)),3)*100`%).
+
+---
+
+## Resultados
+
+
+---
+
+## Resultados
+
+
+```{r histogramas, echo=FALSE, fig.cap="Distribuição das variáveis contínuas"}
+
+dados |> 
+  tidyr::pivot_longer(c(idade, igi_escore:dbas_score), names_to = "variavel", values_to = "escore") |> 
+  ggplot(aes(x = escore)) +
+  geom_histogram(bins = 10, color = "black", fill = "#024F84", alpha = .7) + 
+  facet_wrap(~ variavel, scales="free") +
+  theme_bw() +
+  labs(x = "Escore", y = "Frequência")
+```
+
+---
+
+## Resultados
+
+```{r data, include=FALSE}
+library(broom)
+dados_c <- dados |> 
+  dplyr::mutate(idade = idade - 18) |> 
+  dplyr::mutate(dplyr::across(c(igi_escore:spaq_score), ~(.x - mean(.x, na.rm=TRUE)))) %>% 
+  dplyr::mutate(sexo = ifelse(sexo == "F", .5,-.5),
+                sexo = factor(sexo))
+  
+  
+mod1 <- lm(igi_escore ~ idade + sexo +ehad_ansiedade_escore + ehad_depressao_escore + dbas_score*aaq_score, data = dados_c)
+s <- summary(mod1)
+```
+
+A análise de regressão indicou que o modelo foi capaz de predizer de forma significativa a severidade da insônia (F(`r round(s$fstatistic[[3]])`, `r round(s$fstatistic[[2]])`) = `r round(s$fstatistic[[1]],2)`), *p* < 0.001, $R^2_{adj}$ = `r round(glance(mod1)$adj.r.squared,2)`), explicando cerca de `r round(glance(mod1)$adj.r.squared,2)*100`% da variância.
+
+```{r echo=FALSE}
+report::report_table(mod1) |> 
+  tibble::as_tibble() |> 
+  dplyr::slice(-c(1,9:14)) |>
+  dplyr::select(Parameter, Std_Coefficient, Std_Coefficient_CI_low, Std_Coefficient_CI_high,
+                p) |> 
+  knitr::kable(format = 'html', digits = 3,
+               col.names = c("Parâmetro", "Coeficiente", "IC 95% Low", "IC 95% High", "p"))
+```
+
+---
+## Resultados
+
+
+
+---
+class: middle, left
+
+# Conclusão
+
+Foi observado um efeito positivo da ansiedade, crenças disfuncionais sobre o sono e inflexibilidade psicológica nos escores de severidade da insônia.
+
+O termo de interação estatisticamente significativo indica que o efeito das crenças disfuncionais sobre o sono na insônia pode se tornar mais positivo com o aumento nos níveis de inflexibilidade psicológica.
+

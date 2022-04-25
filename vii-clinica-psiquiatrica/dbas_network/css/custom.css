@@ -1,0 +1,52 @@
+/* Add maven for code font (keep other xaringan defaults */
+@import url('https://fonts.googleapis.com/css2?family=Rasa:wght@300;400;500;600&display=swap');
+
+
+body {
+ font-family: 'Rasa', serif;  
+  /*text-align: justify;*/
+  text-justify: inter-word;
+  line-height: 150%;
+}
+h1, h2, h3 {
+  font-family: 'Rasa';
+  font-weight: normal;
+  line-height: 100%;
+
+}
+
+
+/* Title slide */
+
+/* H1 fonts */
+.title-slide h1 {
+  color: #515151;
+  padding-top: 0px;
+  font-weight: normal;
+  font-size: 50px;
+
+  text-align: left;
+  text-shadow: none;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+/* H2 fonts */
+.title-slide h2 {
+  color: #2A6F9A;
+  font-size: 35px;
+  text-align: left;
+  text-shadow: none;
+  padding-top: 0px;
+  margin-top: 0px;
+}
+
+.title-slide h3 {
+  color: #666666;
+  font-size: 35px;
+  text-align: right;
+  text-shadow: none;
+  padding-top: 0px;
+  margin-top: 0px;
+  line-height: 0.2
+}
