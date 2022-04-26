@@ -5,6 +5,7 @@ author:
   - "Marwin M I B Carmo"
   - "Renatha El Rafihi Ferreira"
 date: "<img src ='img/fapesp-ipq.png' width = '30%'>"
+institute: "Department of Psychiatry, Faculty of Medicine, University of São Paulo, Brazil"
 output:
   xaringan::moon_reader:
     css: ["xaringan-themer.css", "css/custom.css"]
@@ -16,17 +17,26 @@ output:
       ratio: 16:9
       countIncrementalSlides: true
 ---
+layout: true
+  
+<div class="my-footer"><span>
+
+<a href="https://marwincarmo.github.io">Marwin M I B Carmo</a> (<a href="mailto:marwin@usp.br">marwin@usp.br</a>) -- A network approach of Insomnia and Dysfunctional Beliefs and Attitudes About Sleep.
+</span></div>
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
 knitr::opts_chunk$set(
-  fig.width=9, fig.height=3.5, fig.retina=3,
-  out.width = "100%",
-  cache = FALSE,
-  echo = TRUE,
-  message = FALSE, 
-  warning = FALSE,
-  hiline = TRUE
+	echo = FALSE,
+	fig.align = "center",
+	fig.height = 4,
+	fig.retina = 3,
+	fig.width = 9,
+	message = FALSE,
+	warning = FALSE,
+	cache = FALSE,
+	hiline = TRUE,
+	out.width = "100%"
 )
 ```
 
@@ -35,6 +45,9 @@ library(xaringanthemer)
 library(xaringanExtra)
 library(dplyr)
 library(ggplot2)
+library(bootnet)
+library(kableExtra)
+library(patchwork)
 
 style_duo_accent(
   title_slide_background_color ="#FFFFFF",
@@ -43,7 +56,7 @@ style_duo_accent(
   secondary_color = "#FF961C",
   inverse_header_color = "#FFFFFF",
   text_color = "#515151",
-  text_font_size = "1.2rem",
+  text_font_size = "1.4rem",
   table_row_even_background_color = "#D6EAF8"# "#a1c7cf",
 )
 ```
@@ -62,146 +75,324 @@ xaringanExtra::use_logo(
 xaringanExtra::use_scribble()
 ```
 
+
 ```{r database , include=FALSE}
-dados <- readr::read_csv("G:/Documentos/ProjetosR/ASONO/act_insonia/dados/base_arrumada_1409.csv")
+raw_data <- readr::read_csv("data_dbas.csv")
+
+```
+
+```{r table1-data}
+descriptive_data <- raw_data %>% 
+  dplyr::select(sexo, etnia, escolaridade, medicacao_semana, regiao, group) %>% 
+  tidyr::pivot_longer(cols = c(sexo, etnia,sexo, etnia, escolaridade, medicacao_semana, regiao, group),
+                      names_to = 'variable', values_to = 'value',
+                      values_transform = list(value=as.character)) %>% 
+  dplyr::with_groups(c(variable, value), count) %>% 
+  dplyr::with_groups(c(variable), mutate, p = n/sum(n)) %>% 
+  dplyr::mutate(vars = dplyr::case_when(
+    variable == "escolaridade" & value %in% c(1:7) ~ "Less than 12th grade",
+    variable == "escolaridade" & value == 8 ~ "Some college",
+    variable == "escolaridade" & value == 9 ~ "College degree or higher",
+    variable == "etnia" & value == 1 ~ "White",
+    variable == "etnia" & value %in% c(2,3) ~ "Black",
+    variable == "etnia" & value == 4 ~ "Asian",
+    variable == "etnia" & !(value %in% c(1:4)) ~ "Other/Not informed",
+    variable == "medicacao_semana" & value == 0 ~ "Don't use",
+    variable == "medicacao_semana" & value %in% c(1:5) ~ "1-5 days a week",
+    variable == "medicacao_semana" & value %in% c(6,7) ~ "6-7 days a week",
+    variable == "regiao" & value == "Região Centro-Oeste" ~ "Central-West",
+    variable == "regiao" & value == "Região Nordeste" ~ "Northeast",
+    variable == "regiao" & value == "Região Norte" ~ "North",
+    variable == "regiao" & value == "Região Sudeste" ~ "Southeast",
+    variable == "regiao" & value == "Região Sul" ~ "South",
+    variable == "sexo" & value == "F" ~ "Female",
+    variable == "sexo" & value == "M" ~ "Male",
+    TRUE ~ value
+  )) %>% 
+  dplyr::with_groups(c(variable, vars), summarise, n = sum(n), p = sum(p)) %>% 
+  #dplyr::mutate(total = paste0(n, " (", signif(p*100,3), ")")) %>%
+  dplyr::mutate(variable = factor(variable, 
+                                  levels = c("sexo", "etnia", "escolaridade", "regiao", "medicacao_semana", "group"))) %>% 
+  dplyr::arrange(variable) #%>%
+  #dplyr::select(-c(variable, n, p))
+
+
+continuous_data <- raw_data %>% 
+  dplyr::select(idade, renda) %>% 
+  dplyr::summarise(mean_age = mean(idade, na.rm = TRUE),
+                   sd_age = sd(idade, na.rm = TRUE),
+                   income = median(renda, na.rm = TRUE))
+
 ```
 
 
-# Introduction
+```{r bases}
+# By item
+base_items <- raw_data |> 
+  dplyr::filter(redcap_event_name == "elegibilidade_arm_1") |> 
+  dplyr::select(igi_escore, dbas_1:dbas_16) |> 
+  dplyr::rename(ISI = igi_escore,
+                Q1 =dbas_1, Q2 =dbas_2,
+                Q3 =dbas_3, Q4 =dbas_4,
+                Q5 =dbas_5, Q6 =dbas_6,
+                Q7 =dbas_7, Q8 =dbas_8,
+                Q9 =dbas_9, Q10 =dbas_10, 
+                Q11=dbas_11, Q12 = dbas_12,
+                Q13=dbas_13, Q14 = dbas_14,
+                Q15=dbas_15, Q16 = dbas_16)
+items <- c("Insomnia Severity Index",
+           "I need 8 hours of sleep to feel refreshed and function well during the day",
+           "When I don't get proper amount of sleep on a given night, \n I need to catch up on the next day by napping or on the next night by sleeping longer",
+           "I am concerned that chronic insomnia may have serious consequences on my physical health",
+           "I am worried that I may lose control over my abilities to sleep",
+           "After a poor night’s sleep, I know that it will interfere with \n my daily activities on the next day",
+           "In order to be alert and function well during the day, \n I believe I would be better off taking a sleeping pill rather than having a poor night’s sleep",
+           "When I feel irritable, depressed, or anxious during the day,\n it is mostly because I did not sleep well the night before",
+           "When I sleep poorly on one night, I know it will disturb my sleep schedule for the whole week",
+           "Without an adequate night’s sleep, I can hardly function the next day",
+           "I can’t ever predict whether I’ll have a good or poor night’s sleep",
+           "I have little ability to manage the negative consequences of disturbed sleep",
+           "When I feel tired, have no energy, or just seem not to function well during the day,\n it is generally because I did not sleep well the night before",
+           "I believe insomnia is essentially the result of a chemical imbalance",
+           "I feel insomnia is ruining my ability to enjoy life and prevents me from doing what I want",
+           "Medication is probably the only solution to sleeplessness",
+           "I avoid or cancel obligations (social, family) after a poor night’s sleep")
+           
 
-Negatively toned cognitive activity triggers arousal and distress, channeling attention and monitoring to sleep, and creating distorted perceptions.
+factors <- c("Insomnia Severity Index", rep("Expectations", 2), rep("Worry", 2), "Consequences",
+             "Medication", "Consequences", "Worry", "Consequences", rep("Worry", 2), "Consequences",
+             "Medication", "Worry", "Medication", "Consequences")
+
+Network_items <- estimateNetwork(base_items, default = "EBICglasso", weighted = TRUE)
+
+# By factors
+
+base_factors <- raw_data |> 
+  dplyr::filter(redcap_event_name == "elegibilidade_arm_1") |> 
+  dplyr::select(igi_escore, dbas_1:dbas_16) |> 
+  dplyr::mutate(cons = c(dbas_5 + dbas_7 + dbas_9 + dbas_12 + dbas_16),
+               worry = c(dbas_3 + dbas_4 + dbas_8 + dbas_10 + dbas_11 + dbas_14),
+               exp = c(dbas_1 + dbas_2),
+               med = (dbas_6 + dbas_13 + dbas_15)
+               ) |> 
+  dplyr::select(-c(dplyr::starts_with("dbas_"))) |> 
+  dplyr::rename(isi = igi_escore)
+
+Network_factors <- estimateNetwork(base_factors, default = "EBICglasso", weighted = TRUE)
+```
+
+---
+# Introduction
+.v-center[
+Negatively toned cognitive activity triggers arousal and distress, channeling attention and monitoring to sleep, and creating distorted perceptions ([Harvey, 2002](https://doi.org/fwxq35)).
 
 Challenging unhelpful beliefs about sleep is a crucial element of cognitive-behavioral therapy for insomnia.
 
 Understanding how this network of beliefs connects to insomnia severity may provide leads to help targeted interventions.
+]
 ---
 
+# Introduction
+.pull-left[
+
+A **network** structure is represented by **nodes** (variables), connected by **edges** (strength of associations) ([Burger et al., 2022](https://doi.org/10.1037/met0000471)).
+
+Measures of centrality ([Borsboom et al., 2021](https://doi.org/10.1038/s43586-021-00055-w)):
+
+- **Node strenght**: sums the absolute edge weights of edges per node;  
+- **Closeness**: quantifies the distance between the node and all other nodes;  
+- **Betweenness**: quantifies how often a node lies on the shortest path connecting any two other nodes.
+
+]
+
+.pull-right[
+
+```{r, fig.height=5, fig.width=6, out.width="100%"}
+mat <- matrix(rep(0,5*5), nrow=5)
+mat[lower.tri(mat)] <-  c(.2,-.8,0,.6,
+                         -.3,.3,.9,
+                         .2,.4,
+                         0)
+mat <- t(mat)
+mat[lower.tri(mat)] <-  c(.2,-.8,0,.6,
+                          -.3,.3,.9,
+                          .2,.4,
+                          0)
+qgraph::qgraph(mat, layout = "spring", edge.labels = TRUE, 
+               labels = LETTERS[1:5], fade = TRUE)
+
+```
+
+
+]
+
+---
 # Objective
+.v-center[
 
-To use a network analysis of cross-sectional data to investigate the associations of dysfunctional beliefs and attitudes about sleep with overall insomnia severity, in a sample of Brazilian adults.
+To use a network approach to explore interactions between dysfunctional beliefs and attitudes about sleep and insomnia severity.
 
+To identify specific nodes within dysfunctional beliefs and attitudes about sleep that may play a pivotal role in maintaining insomnia.
+]
 ---
 
 # Method
-
-**Participants**: 1376 adults, aged 18 to 59 years, both with and without insomnia symptoms.
+.v-center[
+**Participants**: 1166 adults, aged 18 to 59 years, both with and without insomnia symptoms.
 
 **Instruments**:
 
 - Insomnia Severity Scale (ISI);
 
 - Dysfunctional Beliefs and Attitudes about Sleep Scale (DBAS-16). 
-
+]
 ---
 # Method
+.v-center[
+We fitted Gaussian graphical models using graphical LASSO regularization in combination with Extended Bayesian Information Criterion (EBIC) model selection, with a tuning hyperparameter set to 0.5.
 
-Gaussian Graphical Models were estimated using the GLASSO regularization and EBIC model selection with hyperparameter set to 0.5.
+- A network describing the associations among overall insomnia severity and the four **factors** of DBAS-16
 
-- network describing the associations among overall insomnia severity and the four factors of DBAS-16
+- A network describing the associations among overall insomnia severity and each of the individual **items** of DBAS-16.
 
-- network describing the associations among insomnia severity and each of the individual items of DBAS-16.
-
-The stability of node strength was estimated using a case dropping bootstrap procedure (1000 iterations). Node centrality was assessed by strength, closeness, and betweenness
-
+The stability of node strength was estimated using a case dropping bootstrap procedure (1000 iterations). Node centrality was assessed by strength, closeness, and betweenness.
+]
 ---
 
-## Resultados
+# Sample Characteristics
 
-```{r renda, include=FALSE}
-dados_renda <- dados |> 
-  pull(renda)
+.pull-left[
+- **Mean Age (SD)**: `r round(continuous_data["mean_age"], 2)` (`r round(continuous_data["sd_age"], 2)`)
 
-dados_etnia <- dados |> 
-  filter(!is.na(etnia)) |> 
-  count(etnia) |> 
-  mutate(p = n/sum(n))
+- **Gender (Female)**: `r subset(descriptive_data, n, subset=(vars=="Female"))` (`r round(subset(descriptive_data, p, subset=(vars=="Female"))*100, 2)`%)
 
-dados_escolaridade <- dados |> 
-  count(escolaridade) |> 
-  mutate(p = n/sum(n))
+- **Insomnia symptoms**: `r subset(descriptive_data, n, subset=(vars=="Insomnia"))` (`r round(subset(descriptive_data, p, subset=(vars=="Insomnia"))*100, 2)`%)
 
-dados_med <- dados |> 
-  count(medicacao_semana) |> 
-  mutate(p = n/sum(n))
-
-dados_regiao <- dados |> 
-  count(regiao) |> 
-  mutate(p = n/sum(n))
-
-```
-
-
-A média de idade dos participantes foi de `r round(mean(pull(dados, idade)), 1)` $\pm$ `r round(sd(pull(dados, idade)), 1)` anos. Dos `r nrow(dados)` participantes, `r sum(pull(dados, sexo) == "F")` são do sexo feminino. A mediana da renda familiar mensal por participante foi de R$ `r median(dados_renda, na.rm = TRUE)`,00. 
-
-Em relação a etnia, `r round(pull(select(filter(dados_etnia, etnia == 1), p)),3)*100`% se declararam brancos, `r round(sum(pull(select(filter(dados_etnia, etnia == 2 | etnia == 3), p))),3)*100`% pretos ou pardos, `r round(pull(select(filter(dados_etnia, etnia == 4), p)),3)*100`% amarelos e `r round(pull(select(filter(dados_etnia, etnia == 5), p)),3)*100`% indígenas.
-
-Participantes com ensino superior completo compuseram `r round(pull(select(filter(dados_escolaridade, escolaridade == 9), p)),3)*100`% da amostra.
-
-`r round(sum(pull(select(filter(dados_med, medicacao_semana > 0 &  medicacao_semana <= 7), p))),3)*100`% dos participantes afirmou fazer uso de medicação para dormir ao menos uma vez na semana, enquanto `r round(pull(select(filter(dados_med, medicacao_semana == 7), p)),3)*100`% relataram usar remédios para dormir todos os dias.
-
-A maior parte dos participantes são residentes da Região Sudeste (`r round(pull(select(filter(dados_regiao, regiao == "Região Sudeste"), p)),3)*100`%).
-
----
-
-## Resultados
-
-
----
-
-## Resultados
-
-
-```{r histogramas, echo=FALSE, fig.cap="Distribuição das variáveis contínuas"}
-
-dados |> 
-  tidyr::pivot_longer(c(idade, igi_escore:dbas_score), names_to = "variavel", values_to = "escore") |> 
-  ggplot(aes(x = escore)) +
-  geom_histogram(bins = 10, color = "black", fill = "#024F84", alpha = .7) + 
-  facet_wrap(~ variavel, scales="free") +
-  theme_bw() +
-  labs(x = "Escore", y = "Frequência")
-```
-
----
-
-## Resultados
-
-```{r data, include=FALSE}
-library(broom)
-dados_c <- dados |> 
-  dplyr::mutate(idade = idade - 18) |> 
-  dplyr::mutate(dplyr::across(c(igi_escore:spaq_score), ~(.x - mean(.x, na.rm=TRUE)))) %>% 
-  dplyr::mutate(sexo = ifelse(sexo == "F", .5,-.5),
-                sexo = factor(sexo))
+- **Race/ethnicity**:
+  - Asian: `r subset(descriptive_data, n, subset=(vars=="Asian"))` (`r round(subset(descriptive_data, p, subset=(vars=="Asian"))*100, 2)`%)
+  - Black: `r subset(descriptive_data, n, subset=(vars=="Black"))` (`r round(subset(descriptive_data, p, subset=(vars=="Black"))*100, 2)`%)
+  - White: `r subset(descriptive_data, n, subset=(vars=="White"))` (`r round(subset(descriptive_data, p, subset=(vars=="White"))*100, 2)`%)
+  - Other/Not informed: `r subset(descriptive_data, n, subset=(vars=="Other/Not informed"))` (`r round(subset(descriptive_data, p, subset=(vars=="Other/Not informed"))*100, 2)`%)
   
-  
-mod1 <- lm(igi_escore ~ idade + sexo +ehad_ansiedade_escore + ehad_depressao_escore + dbas_score*aaq_score, data = dados_c)
-s <- summary(mod1)
-```
+]
 
-A análise de regressão indicou que o modelo foi capaz de predizer de forma significativa a severidade da insônia (F(`r round(s$fstatistic[[3]])`, `r round(s$fstatistic[[2]])`) = `r round(s$fstatistic[[1]],2)`), *p* < 0.001, $R^2_{adj}$ = `r round(glance(mod1)$adj.r.squared,2)`), explicando cerca de `r round(glance(mod1)$adj.r.squared,2)*100`% da variância.
+.pull-right[
 
-```{r echo=FALSE}
-report::report_table(mod1) |> 
-  tibble::as_tibble() |> 
-  dplyr::slice(-c(1,9:14)) |>
-  dplyr::select(Parameter, Std_Coefficient, Std_Coefficient_CI_low, Std_Coefficient_CI_high,
-                p) |> 
-  knitr::kable(format = 'html', digits = 3,
-               col.names = c("Parâmetro", "Coeficiente", "IC 95% Low", "IC 95% High", "p"))
+- **Education**:
+  - College degree or higher: `r subset(descriptive_data, n, subset=(vars=="College degree or higher"))` (`r round(subset(descriptive_data, p, subset=(vars=="College degree or higher"))*100, 2)`%)
+  - Less than 12th grade: `r subset(descriptive_data, n, subset=(vars=="Less than 12th grade"))` (`r round(subset(descriptive_data, p, subset=(vars=="Less than 12th grade"))*100, 2)`%)
+  - Some college: `r subset(descriptive_data, n, subset=(vars=="Some college"))` (`r round(subset(descriptive_data, p, subset=(vars=="Some college"))*100, 2)`%)
+
+- **Region of origin**:
+  - Central-West: `r subset(descriptive_data, n, subset=(vars=="Central-West"))` (`r round(subset(descriptive_data, p, subset=(vars=="Central-West"))*100, 2)`%)
+  - North: `r subset(descriptive_data, n, subset=(vars=="North"))` (`r round(subset(descriptive_data, p, subset=(vars=="North"))*100, 2)`%)
+  - Northeast: `r subset(descriptive_data, n, subset=(vars=="Northeast"))` (`r round(subset(descriptive_data, p, subset=(vars=="Northeast"))*100, 2)`%)
+  - South: `r subset(descriptive_data, n, subset=(vars=="South"))` (`r round(subset(descriptive_data, p, subset=(vars=="South"))*100, 2)`%)
+  - Southeast: `r subset(descriptive_data, n, subset=(vars=="Southeast"))` (`r round(subset(descriptive_data, p, subset=(vars=="Southeast"))*100, 2)`%)
+]
+---
+# Results
+
+```{r factors-plot, fig.cap = "isi = Insomnia Severity Index, worry = Worry about sleep, exp = Sleep expectations, cons = Consequences of insomnia, med = Medication.", out.width="80%"}
+plot(Network_factors, layout = "spring",
+     theme = "colorblind",color="seashell2",
+     nodeNames = colnames(base_factors), 
+     legend.mode="style2", label.cex = 1.2,
+     vsize = 12, esize = 15, details = F,legend = FALSE)
+
 ```
 
 ---
-## Resultados
 
+# Results
 
+```{r centrality-factors-plot}
+source("centrality_plots.R")
+plot(cntPlot1)
+```
 
 ---
-class: middle, left
+# Results
 
-# Conclusão
+```{r edge-estimates-factors, message=FALSE, warning=FALSE, include=FALSE}
 
-Foi observado um efeito positivo da ansiedade, crenças disfuncionais sobre o sono e inflexibilidade psicológica nos escores de severidade da insônia.
+# Accuracy and  of Edge-Estimates
+boot1 <- bootnet(Network_factors, nBoots = 10)
 
-O termo de interação estatisticamente significativo indica que o efeito das crenças disfuncionais sobre o sono na insônia pode se tornar mais positivo com o aumento nos níveis de inflexibilidade psicológica.
+p1 <- plot(boot1, labels = FALSE,
+     order = "sample")
 
+# Stability
+
+boot2 <- bootnet(Network_factors, nBoots = 10, type = "case", statistics = c("strength", "closeness", "betweenness"))
+
+p2 <- plot(boot2, statistics= c("strength","closeness","betweenness")) 
+
+```
+
+```{r plot-edge-estimates-factors}
+p1 + p2
+```
+
+---
+
+# Results
+
+```{r}
+plot(Network_items, layout = "spring",
+     label.cex=.70, label.scale=F, theme = "colorblind",
+     nodeNames = items, groups = factors,
+     legend.mode="style2", legend.cex=.22,
+     vsize = 6, esize = 15, details = F, 
+     layoutOffset = c(-.2,0))
+```
+---
+# Results
+
+```{r centrality-items-plot}
+
+plot(cntPlot2)
+```
+
+---
+
+# Results
+
+```{r edge-estimates-items, message=FALSE, warning=FALSE, include=FALSE}
+
+# Accuracy and  of Edge-Estimates
+boot3 <- bootnet(Network_items, nBoots = 10)
+
+p3 <- plot(boot3, labels = FALSE,
+     order = "sample")
+
+# Stability
+
+boot4 <- bootnet(Network_items, nBoots = 10, type = "case", statistics = c("strength", "closeness", "betweenness"))
+
+p4 <- plot(boot4, statistics= c("strength","closeness","betweenness")) 
+
+```
+
+```{r plot-edge-estimates-items}
+p3 + p4
+```
+
+---
+# Conclusion
+
+- We used Network analysis as an exploratory technique to identifies patterns of conditional independence that may help interpreting empirical phenomena.
+
+- *Sleep expectations* is negatively associated with overall insomnia severity score.
+
+- **Worry about sleep** is the most central item in terms of strength, indicating its importance as possible target for cognitive-behavioral therapy for insomnia.
+
+- *Belief that a poor night of sleep would ruin functioning on the next day* and *feelings that insomnia is ruining ability to enjoy life*
+---
+# References
+
+```{r eval=FALSE, include=FALSE}
+doi <- c('https://doi.org/10.1037/met0000471', 'https://doi.org/10.1038/s43586-021-00055-w')
+#cat(unlist(rcrossref::cr_cn(dois = doi, format = "text", style = 'apa')))
+refs <- rcrossref::cr_cn(dois = doi, format = "text", style = 'apa')
+```
