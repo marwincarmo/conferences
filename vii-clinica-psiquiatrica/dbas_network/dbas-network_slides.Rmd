@@ -15,7 +15,7 @@ output:
       highlightStyle: github
       highlightLines: true
       ratio: 16:9
-      countIncrementalSlides: true
+      countIncrementalSlides: false
 ---
 layout: true
   
@@ -57,6 +57,7 @@ style_duo_accent(
   inverse_header_color = "#FFFFFF",
   text_color = "#515151",
   text_font_size = "1.4rem",
+  text_slide_number_color = "#FFFFFF",
   table_row_even_background_color = "#D6EAF8"# "#a1c7cf",
 )
 ```
@@ -69,10 +70,6 @@ xaringanExtra::use_logo(
   position = css_position(top = "1em", right = "1em"),
   exclude_class = c("my-title", "inverse", "hide_logo")
 )
-```
-
-```{r xaringan-scribble, echo=FALSE}
-xaringanExtra::use_scribble()
 ```
 
 
@@ -207,7 +204,7 @@ Measures of centrality ([Borsboom et al., 2021](https://doi.org/10.1038/s43586-0
 
 .pull-right[
 
-```{r, fig.height=5, fig.width=6, out.width="100%"}
+```{r, fig.height=5, fig.width=6, out.width="100%", dpi=300}
 mat <- matrix(rep(0,5*5), nrow=5)
 mat[lower.tri(mat)] <-  c(.2,-.8,0,.6,
                          -.3,.3,.9,
@@ -238,11 +235,11 @@ To identify specific nodes within dysfunctional beliefs and attitudes about slee
 
 # Method
 .v-center[
-**Participants**: 1166 adults, aged 18 to 59 years, both with and without insomnia symptoms.
+**Participants**: `r nrow(raw_data)` adults, aged `r min(raw_data$idade, na.rm=TRUE)` to `r max(raw_data$idade, na.rm=TRUE)` years, both with and without insomnia symptoms.
 
 **Instruments**:
 
-- Insomnia Severity Scale (ISI);
+- Insomnia Severity Index (ISI);
 
 - Dysfunctional Beliefs and Attitudes about Sleep Scale (DBAS-16). 
 ]
@@ -255,14 +252,14 @@ We fitted Gaussian graphical models using graphical LASSO regularization in comb
 
 - A network describing the associations among overall insomnia severity and each of the individual **items** of DBAS-16.
 
-The stability of node strength was estimated using a case dropping bootstrap procedure (1000 iterations). Node centrality was assessed by strength, closeness, and betweenness.
+The stability of the network structures was estimated using a case dropping bootstrap procedure (1000 iterations). Node centrality was assessed by strength, closeness, and betweenness.
 ]
 ---
 
 # Sample Characteristics
 
 .pull-left[
-- **Mean Age (SD)**: `r round(continuous_data["mean_age"], 2)` (`r round(continuous_data["sd_age"], 2)`)
+- **Age**: `r round(continuous_data["mean_age"], 2)` (`r round(continuous_data["sd_age"], 2)`)
 
 - **Gender (Female)**: `r subset(descriptive_data, n, subset=(vars=="Female"))` (`r round(subset(descriptive_data, p, subset=(vars=="Female"))*100, 2)`%)
 
@@ -280,20 +277,21 @@ The stability of node strength was estimated using a case dropping bootstrap pro
 
 - **Education**:
   - College degree or higher: `r subset(descriptive_data, n, subset=(vars=="College degree or higher"))` (`r round(subset(descriptive_data, p, subset=(vars=="College degree or higher"))*100, 2)`%)
-  - Less than 12th grade: `r subset(descriptive_data, n, subset=(vars=="Less than 12th grade"))` (`r round(subset(descriptive_data, p, subset=(vars=="Less than 12th grade"))*100, 2)`%)
   - Some college: `r subset(descriptive_data, n, subset=(vars=="Some college"))` (`r round(subset(descriptive_data, p, subset=(vars=="Some college"))*100, 2)`%)
+  - Less than 12th grade: `r subset(descriptive_data, n, subset=(vars=="Less than 12th grade"))` (`r round(subset(descriptive_data, p, subset=(vars=="Less than 12th grade"))*100, 2)`%)
 
 - **Region of origin**:
-  - Central-West: `r subset(descriptive_data, n, subset=(vars=="Central-West"))` (`r round(subset(descriptive_data, p, subset=(vars=="Central-West"))*100, 2)`%)
+
   - North: `r subset(descriptive_data, n, subset=(vars=="North"))` (`r round(subset(descriptive_data, p, subset=(vars=="North"))*100, 2)`%)
   - Northeast: `r subset(descriptive_data, n, subset=(vars=="Northeast"))` (`r round(subset(descriptive_data, p, subset=(vars=="Northeast"))*100, 2)`%)
-  - South: `r subset(descriptive_data, n, subset=(vars=="South"))` (`r round(subset(descriptive_data, p, subset=(vars=="South"))*100, 2)`%)
+  - Central-West: `r subset(descriptive_data, n, subset=(vars=="Central-West"))` (`r round(subset(descriptive_data, p, subset=(vars=="Central-West"))*100, 2)`%)
   - Southeast: `r subset(descriptive_data, n, subset=(vars=="Southeast"))` (`r round(subset(descriptive_data, p, subset=(vars=="Southeast"))*100, 2)`%)
+  - South: `r subset(descriptive_data, n, subset=(vars=="South"))` (`r round(subset(descriptive_data, p, subset=(vars=="South"))*100, 2)`%)
 ]
 ---
 # Results
 
-```{r factors-plot, fig.cap = "isi = Insomnia Severity Index, worry = Worry about sleep, exp = Sleep expectations, cons = Consequences of insomnia, med = Medication.", out.width="80%"}
+```{r factors-plot, fig.cap = "isi = Insomnia Severity Index, worry = Worry about sleep, exp = Sleep expectations, cons = Consequences of insomnia, med = Medication.", out.width="80%", dpi=300}
 plot(Network_factors, layout = "spring",
      theme = "colorblind",color="seashell2",
      nodeNames = colnames(base_factors), 
@@ -306,7 +304,7 @@ plot(Network_factors, layout = "spring",
 
 # Results
 
-```{r centrality-factors-plot}
+```{r centrality-factors-plot, dpi=300}
 source("centrality_plots.R")
 plot(cntPlot1)
 ```
@@ -317,20 +315,20 @@ plot(cntPlot1)
 ```{r edge-estimates-factors, message=FALSE, warning=FALSE, include=FALSE}
 
 # Accuracy and  of Edge-Estimates
-boot1 <- bootnet(Network_factors, nBoots = 10)
+boot1 <- bootnet(Network_factors, nBoots = 1000)
 
 p1 <- plot(boot1, labels = FALSE,
      order = "sample")
 
 # Stability
 
-boot2 <- bootnet(Network_factors, nBoots = 10, type = "case", statistics = c("strength", "closeness", "betweenness"))
+boot2 <- bootnet(Network_factors, nBoots = 1000, type = "case", statistics = c("strength", "closeness", "betweenness"))
 
 p2 <- plot(boot2, statistics= c("strength","closeness","betweenness")) 
 
 ```
 
-```{r plot-edge-estimates-factors}
+```{r plot-edge-estimates-factors, dpi=300}
 p1 + p2
 ```
 
@@ -338,7 +336,7 @@ p1 + p2
 
 # Results
 
-```{r}
+```{r network-items, dpi=300}
 plot(Network_items, layout = "spring",
      label.cex=.70, label.scale=F, theme = "colorblind",
      nodeNames = items, groups = factors,
@@ -361,38 +359,75 @@ plot(cntPlot2)
 ```{r edge-estimates-items, message=FALSE, warning=FALSE, include=FALSE}
 
 # Accuracy and  of Edge-Estimates
-boot3 <- bootnet(Network_items, nBoots = 10)
+boot3 <- bootnet(Network_items, nBoots = 1000)
 
 p3 <- plot(boot3, labels = FALSE,
      order = "sample")
 
 # Stability
 
-boot4 <- bootnet(Network_items, nBoots = 10, type = "case", statistics = c("strength", "closeness", "betweenness"))
+boot4 <- bootnet(Network_items, nBoots = 1000, type = "case", statistics = c("strength", "closeness", "betweenness"))
 
 p4 <- plot(boot4, statistics= c("strength","closeness","betweenness")) 
 
 ```
 
-```{r plot-edge-estimates-items}
+```{r plot-edge-estimates-items, dpi=300}
 p3 + p4
 ```
 
 ---
 # Conclusion
+.v-center[
+- We used Network analysis as an exploratory technique to identify patterns that may help interpreting empirical phenomena.
 
-- We used Network analysis as an exploratory technique to identifies patterns of conditional independence that may help interpreting empirical phenomena.
+- **Worry about sleep** is a factor that can directly influence other nodes.
 
-- *Sleep expectations* is negatively associated with overall insomnia severity score.
+- *Belief that a poor night of sleep would ruin functioning on the next day* and *feelings that insomnia is ruining ability to enjoy life* are possible targets to for improving CBT-I.
 
-- **Worry about sleep** is the most central item in terms of strength, indicating its importance as possible target for cognitive-behavioral therapy for insomnia.
-
-- *Belief that a poor night of sleep would ruin functioning on the next day* and *feelings that insomnia is ruining ability to enjoy life*
+- These findings may benefit the efficiency of future intervention studies by identifying priority symptoms for treatment.
+]
 ---
 # References
 
-```{r eval=FALSE, include=FALSE}
-doi <- c('https://doi.org/10.1037/met0000471', 'https://doi.org/10.1038/s43586-021-00055-w')
-#cat(unlist(rcrossref::cr_cn(dois = doi, format = "text", style = 'apa')))
-refs <- rcrossref::cr_cn(dois = doi, format = "text", style = 'apa')
+Harvey, A. G. (2002). A cognitive model of insomnia. *Behaviour Research and Therapy, 40*(8), 869–893. https://doi.org/10/fwxq35
+
+Borsboom, D., Deserno, M. K., Rhemtulla, M., Epskamp, S., Fried, E. I., McNally, R. J., Robinaugh, D. J., Perugini, M., Dalege, J., Costantini, G., Isvoranu, A.-M., Wysocki, A. C., van Borkulo, C. D., van Bork, R., & Waldorp, L. J. (2021). Network analysis of multivariate data in psychological science. *Nature Reviews Methods Primers, 1*(1). https://doi.org/10.1038/s43586-021-00055-w
+
+Burger, J., Isvoranu, A.-M., Lunansky, G., Haslbeck, J. M. B., Epskamp, S., Hoekstra, R. H. A., Fried, E. I., Borsboom, D., & Blanken, T. F. (2022). Reporting standards for psychological network analyses in cross-sectional data. *Psychological Methods*. https://doi.org/10.1037/met0000471
+
+---
+# Thank you
+
+.pull-left[
+Contact:
+  - Email: [marwin@usp.br](mailto:marwin@usp.br)
+  - Webpage: [https://marwincarmo.github.io/](https://marwincarmo.github.io/)
+  - Github: [marwincarmo](https://github.com/marwincarmo)
+  - Twitter: [marwincarmo](https://twitter.com/marwincarmo)
+  - Linkedin: [Marwin Carmo](https://www.linkedin.com/in/marwin-carmo/)
+
+This presentation was created using `xaringanthemer` package for R. Code available at [bit.ly/viiccp-code](https://bit.ly/viiccp-code)
+]
+
+.pull-right[
+<center>
+Access the slides at
+
+```{r qr-code, fig.width=7, dpi=300}
+
+library(qrcode)
+
+set.seed(1306991991)
+
+slidescode <- qr_code("https://marwincarmo.github.io/slides/viiccp/dbas-network_slides", "M")
+
+plot(slidescode,
+     col = c("white", "#024F84"))
+
 ```
+
+<a href="https://bit.ly/viicp-dbas">bit.ly/viicp-dbas</a>
+
+</center>
+]
