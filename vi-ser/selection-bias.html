@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Understanding Model Selection Bias via Simulation</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Marwin M I B Carmo" />
+    <script src="selection-bias_files/header-attrs/header-attrs.js"></script>
+    <link href="selection-bias_files/xaringanExtra-extra-styles/xaringanExtra-extra-styles.css" rel="stylesheet" />
+    <script src="selection-bias_files/xaringanExtra-progressBar/progress-bar.js"></script>
+    <script src="selection-bias_files/fabric/fabric.min.js"></script>
+    <link href="selection-bias_files/xaringanExtra-scribble/scribble.css" rel="stylesheet" />
+    <script src="selection-bias_files/xaringanExtra-scribble/scribble.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function() { window.xeScribble = new Scribble({"pen_color":["#FF0000"],"pen_size":3,"eraser_size":30,"palette":[]}) })</script>
+    <link href="selection-bias_files/panelset/panelset.css" rel="stylesheet" />
+    <script src="selection-bias_files/panelset/panelset.js"></script>
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+    <link rel="stylesheet" href="css/custom.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Understanding Model Selection Bias via Simulation
+## VI International Seminar on Statistics with R
+### Marwin M I B Carmo
+### Department of Psychiatry, Faculty of Medicine, University of São Paulo, Brazil
+### <img src ='img/fapesp-ipq.png' width = '30%'>
+
+---
+
+layout: true
+  
+&lt;div class="my-footer"&gt;&lt;span&gt;
+
+&lt;a href="https://marwincarmo.github.io"&gt;Marwin M I B Carmo&lt;/a&gt; (&lt;a href="mailto:marwin@usp.br"&gt;marwin@usp.br&lt;/a&gt;) -- Understanding Model Selection Bias via Simulation.
+&lt;/span&gt;&lt;/div&gt;
+
+
+
+
+
+
+
+<style>.xe__progress-bar__container {
+  top:0;
+  opacity: 1;
+  position:absolute;
+  right:0;
+  left: 0;
+}
+.xe__progress-bar {
+  height: 0.25em;
+  background-color: #c31919;
+  width: calc(var(--slide-current) / var(--slide-total) * 100%);
+}
+.remark-visible .xe__progress-bar {
+  animation: xe__progress-bar__wipe 200ms forwards;
+  animation-timing-function: cubic-bezier(.86,0,.07,1);
+}
+@keyframes xe__progress-bar__wipe {
+  0% { width: calc(var(--slide-previous) / var(--slide-total) * 100%); }
+  100% { width: calc(var(--slide-current) / var(--slide-total) * 100%); }
+}</style>
+
+---
+# Introduction
+
+Much of the current research questions on behavioral and social sciences are investigated using statistical models
+
+In practice, researchers usually only have a vague idea of the right model to answer their research questions
+
+To determine which variables should be included in the model, a common solution is to resort to variable selection algorithms
+
+If the model selection method evaluates the stochastic component of the data, the model is also considered stochastic
+
+---
+# Why is it a problem?
+.middle[
+the estimated results can be highly biased when the correct model is unknown prior to data analysis, and the same dataset is used for
+
+1. variable selection; 
+2. parameter estimation; 
+3. statistical inferences
+
+These procedures discards parameter estimates from the model, and the sampling distribution of the remaining regression parameters estimates gets distorted
+]
+---
+
+In a multiple regression we estimate *partial regression coefficients*
+
+`\begin{equation}
+\hat{Y} = B_{Y0 \cdot 12} + B_{Y1 \cdot 2}X_1 + B_{Y2 \cdot 1}X_2 + \varepsilon
+\end{equation}`
+
+The regression coefficient for `\(X_i\)`, is model dependent:
+
+`\begin{equation}
+B_{Y1 \cdot 2} = \frac{\rho_{Y1} - \rho_{Y2}\rho_{12}}{(1 - \rho_{12}^2)} \times \frac{\sigma_Y}{\sigma_1}
+\end{equation}`
+
+`\begin{equation}
+B_{Y2 \cdot 1} = \frac{\rho_{Y2} - \rho_{Y1}\rho_{21}}{(1 - \rho_{21}^2)} \times \frac{\sigma_Y}{\sigma_2}
+\end{equation}`
+
+Unless we have uncorrelated predictors (i.e. `\(\rho_{12}\)` = 0 and/or `\(\rho_{21}\)` = 0), the value for any of the regression coefficients is determined by which other predictors are in the model:
+
+`\begin{equation}
+B_{Y1 \cdot 2} = \frac{\rho_{Y1} - 0 \times 0}{(1 - 0^2)} \times \frac{\sigma_Y}{\sigma_1} = \rho_{Y1} \times \frac{\sigma_Y}{\sigma_1} = B_{Y1}
+\end{equation}`
+
+---
+
+# Example 1
+
+Consider a model for a response variable `\(y\)` with two potential regressors, `\(x\)` and `\(z\)`. Say we are interested in the relationship between `\(y\)` and `\(x\)` while holding `\(z\)` constant, that is, `\(\hat{\beta}_{yx\cdot z}\)`
+
+`\begin{equation}
+y_i = \beta_0 + \beta_1x_i + \beta_2z_i + \varepsilon_i
+\end{equation}`
+
+
+```r
+p &lt;- 2 # number of predictors
+Sigma &lt;- matrix(.5, p, p) # correlation matrix
+diag(Sigma) &lt;- 1
+n = 250 # sample size
+b0 &lt;- 10 # intercept (can be set to any value)
+betas &lt;- rep(1, 2) 
+reps = 1000
+coefs &lt;- cover &lt;- matrix(0, nrow = reps, ncol = 2) # defining the matrices to store simulation results
+```
+---
+
+.panelset[
+.panel[.panel-name[Code]
+
+```r
+for (i in seq(reps)) {
+  # X is a matrix of regression coefficients
+  X &lt;-  MASS::mvrnorm(n = n, rep(0, 2) , Sigma)
+  # with the values randomly drawn in X, we'll estimate values for y
+  y &lt;- as.numeric(cbind(1, X) %*% c(b0, betas) + rnorm(n, 0, sqrt(10)))
+  Xy &lt;- as.data.frame( cbind(X, y))
+  colnames(Xy) &lt;- c(c("x", "z"), "y")
+  # fit a linear model with x and z to predict y
+  fit &lt;- lm(y ~ ., data = Xy)
+  coefs[i, ] &lt;- coef(fit)[-1] # save the regression coefficients
+  cis &lt;- confint(fit)[-1,] # save the 95% CIs
+  # if the true value is capture by the CI, sum 1, 0 otherwise 
+  cover[i,] &lt;- ifelse(cis[,1] &lt; 1 &amp; cis[,2] &gt; 1, 1, 0)
+}
+colnames(coefs) &lt;- c("x", "z")
+coefs &lt;- as.data.frame(coefs)
+```
+]
+.panel[.panel-name[Results]
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Predictor &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Coverage &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Bias &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; x &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.951 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -0.0027163 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; z &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.944 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -0.0017482 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;img src="selection-bias_files/figure-html/plot-ex1a-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+]
+]
+---
+
+
+
+.panelset[
+.panel[.panel-name[Code]
+
+```r
+for (i in seq(reps)) {
+  X &lt;-  MASS::mvrnorm(n = n, rep(0, 2) , Sigma)
+  y &lt;- as.numeric(cbind(1, X) %*% c(b0, betas) + rnorm(n, 0, sqrt(10)))
+  Xy &lt;- as.data.frame( cbind(X, y))
+  colnames(Xy) &lt;- c(c("x", "z"), "y")
+  fit &lt;- lm(y ~ x, data = Xy)
+  coefs[i, ] &lt;- coef(fit)[-1]
+  cis &lt;- confint(fit)[-1,]
+  cover[i,] &lt;- ifelse(cis[1] &lt; 1 &amp; cis[2] &gt; 1, 1, 0)
+}
+colnames(coefs) &lt;- c("x", "z")
+coefs &lt;- as.data.frame(coefs)
+```
+]
+.panel[.panel-name[Results]
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Predictor &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Coverage &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Bias &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; x &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.335 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.2913295 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; z &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.335 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.2913295 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;img src="selection-bias_files/figure-html/plot-ex1b-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+]
+]
+---
+class: middle
+
+&gt; "When a single model is not specified before the analysis begins, it is not clear what population parameter is the subject of study. And without this clarity, the reasoning behind statistical inference becomes obscure". (Berk et al., 2010)
+---
+
+# Known issues
+
+.v-center[
+
+`\begin{equation}
+SE(\beta_{yx\cdot z}) = \frac{\hat{\sigma_{\varepsilon}}}{s_x \sqrt{n-1}}\sqrt{\frac{1}{1-r^2_{xy}}} 
+\end{equation}`
+
+- Correlation
+
+- Signal-to-Noise: `\(\frac{S}{N} = \textbf{b}\Sigma\textbf{b}\sigma^{-2}\)`
+
+- Sample size
+
+- Number of predictors
+]
+---
+
+
+
+
+
+&lt;img src="selection-bias_files/figure-html/simplots-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Sample Characteristics
+
+
+---
+# Results
+
+
+---
+
+# Results
+
+---
+# Conclusion
+.v-center[
+- We used Network analysis as an exploratory technique to identify patterns that may help interpreting empirical phenomena.
+
+- **Worry about sleep** is a factor that can directly influence other nodes.
+
+- *Belief that a poor night of sleep would ruin functioning on the next day* and *feelings that insomnia is ruining ability to enjoy life* are possible targets to for improving CBT-I.
+
+- These findings may benefit the efficiency of future intervention studies by identifying priority symptoms for treatment.
+]
+---
+# References
+
+Harvey, A. G. (2002). A cognitive model of insomnia. *Behaviour Research and Therapy, 40*(8), 869–893. https://doi.org/10/fwxq35
+
+Borsboom, D., Deserno, M. K., Rhemtulla, M., Epskamp, S., Fried, E. I., McNally, R. J., Robinaugh, D. J., Perugini, M., Dalege, J., Costantini, G., Isvoranu, A.-M., Wysocki, A. C., van Borkulo, C. D., van Bork, R., &amp; Waldorp, L. J. (2021). Network analysis of multivariate data in psychological science. *Nature Reviews Methods Primers, 1*(1). https://doi.org/10.1038/s43586-021-00055-w
+
+Burger, J., Isvoranu, A.-M., Lunansky, G., Haslbeck, J. M. B., Epskamp, S., Hoekstra, R. H. A., Fried, E. I., Borsboom, D., &amp; Blanken, T. F. (2022). Reporting standards for psychological network analyses in cross-sectional data. *Psychological Methods*. https://doi.org/10.1037/met0000471
+
+---
+# Thank you
+
+.pull-left[
+Contact:
+  - Email: [marwin@usp.br](mailto:marwin@usp.br)
+  - Webpage: [https://marwincarmo.github.io/](https://marwincarmo.github.io/)
+  - Github: [marwincarmo](https://github.com/marwincarmo)
+  - Twitter: [marwincarmo](https://twitter.com/marwincarmo)
+  - Linkedin: [Marwin Carmo](https://www.linkedin.com/in/marwin-carmo/)
+
+This presentation was created using `xaringanthemer` package for R. Code available at [bit.ly/viiccp-code](https://bit.ly/viiccp-code)
+]
+
+.pull-right[
+&lt;center&gt;
+Access the slides at
+
+
+
+&lt;a href="https://bit.ly/viicp-dbas"&gt;bit.ly/viicp-dbas&lt;/a&gt;
+
+&lt;/center&gt;
+]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"slideNumberFormat": "%current%",
+"highlightStyle": "github",
+"highlightLines": true,
+"ratio": "16:9",
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
