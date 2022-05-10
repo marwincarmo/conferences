@@ -1,0 +1,108 @@
+---
+# Altere o nome da sua apresentação abaixo:
+title: "Título da apresentação"
+subtitle: "Subtítulo se houver, se não houver pode comentar a linha com #"
+# Adicione o nome das pessoas autoras:
+author: "Autor(a) 1, Autor(a) 2, Autor(a) 3..."
+# Evite editar o trecho de código a seguir.
+institute: "International Seminar on Statistics with R"  
+date: 'Maio de 2022'
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: [default, custom.css]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: '16:9'
+# O código abaixo irá gerar a apresentação em HTML e PDF.
+# Caso não queira a versão em PDF, comente a linha a seguir:
+knit: pagedown::chrome_print
+---
+
+```{r setup, include=FALSE}
+# Não edite este chunk :)
+options(htmltools.dir.version = FALSE)
+library(magrittr, include.only = "%>%")
+```
+
+```{r xaringan-logo, echo=FALSE}
+# Não edite este chunk :)
+xaringanExtra::use_logo(
+  image_url = "img/logo.png", 
+  link_url = "http://ser.uff.br/"
+)
+```
+
+
+
+<!-- Você pode apagar o conteúdo abaixo e escrever o conteúdo da sua apresentação!  -->
+
+## Introdução
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+---
+
+
+## Materiais e métodos
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+---
+
+## Resultados e discussões
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+---
+
+## Conclusões
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+---
+## Como colocar alguns elementos?
+
+Texto em duas colunas:
+
+.pull-left[
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+]
+
+.pull-right[
+
+is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+
+]
+
+---
+## Como colocar alguns elementos?
+
+- Tabelas: Existem várias funções que possibilitam adicionar tabelas. Este exemplo é feito com o pacote DT:
+
+```{r echo=FALSE}
+mtcars %>% DT::datatable(fillContainer = TRUE,
+                         options = list(scrollY = "250px"))
+```
+
+---
+## Como colocar alguns elementos?
+
+- Imagens:
+
+```{r echo=FALSE, fig.align='center', fig.alt="Escreva uma descrição sobre a image", fig.cap="Legenda da imagem",out.width = "40%"}
+knitr::include_graphics("img/logo.png")
+```
+---
+
+## Referências para estudar
+
+- https://r-ladies-sao-paulo.github.io/xaringan/
+
+- https://beatrizmilz.github.io/IME-27-08-2019/#1
+
+Caso tenha dúvidas sobre a apresentação, recomendo pesquisar e postar neste fórum: https://discourse.curso-r.com/

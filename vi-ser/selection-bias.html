@@ -15,25 +15,21 @@
     <script src="selection-bias_files/panelset/panelset.js"></script>
     <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
     <link rel="stylesheet" href="css/custom.css" type="text/css" />
+    <link rel="stylesheet" href="css/scrollable.css" type="text/css" />
   </head>
   <body>
     <textarea id="source">
 class: center, middle, inverse, title-slide
 
 # Understanding Model Selection Bias via Simulation
-## VI International Seminar on Statistics with R
+## VI SER - International Seminar on Statistics with R
 ### Marwin M I B Carmo
 ### Department of Psychiatry, Faculty of Medicine, University of São Paulo, Brazil
 ### <img src ='img/fapesp-ipq.png' width = '30%'>
 
 ---
 
-layout: true
-  
-&lt;div class="my-footer"&gt;&lt;span&gt;
 
-&lt;a href="https://marwincarmo.github.io"&gt;Marwin M I B Carmo&lt;/a&gt; (&lt;a href="mailto:marwin@usp.br"&gt;marwin@usp.br&lt;/a&gt;) -- Understanding Model Selection Bias via Simulation.
-&lt;/span&gt;&lt;/div&gt;
 
 
 
@@ -62,50 +58,83 @@ layout: true
   100% { width: calc(var(--slide-current) / var(--slide-total) * 100%); }
 }</style>
 
----
+<div>
+<style type="text/css">.xaringan-extra-logo {
+width: 110px;
+height: 128px;
+z-index: 0;
+background-image: url(img/logo.png);
+background-size: contain;
+background-repeat: no-repeat;
+position: absolute;
+top:1em;right:3em;
+}
+</style>
+<script>(function () {
+  let tries = 0
+  function addLogo () {
+    if (typeof slideshow === 'undefined') {
+      tries += 1
+      if (tries < 10) {
+        setTimeout(addLogo, 100)
+      }
+    } else {
+      document.querySelectorAll('.remark-slide-content:not(.my-title):not(.inverse):not(.hide_logo)')
+        .forEach(function (slide) {
+          const logo = document.createElement('div')
+          logo.classList = 'xaringan-extra-logo'
+          logo.href = null
+          slide.appendChild(logo)
+        })
+    }
+  }
+  document.addEventListener('DOMContentLoaded', addLogo)
+})()</script>
+</div>
+
 # Introduction
 
-Much of the current research questions on behavioral and social sciences are investigated using statistical models
+Much of the current research questions on behavioral and social sciences are investigated using statistical models.
 
-In practice, researchers usually only have a vague idea of the right model to answer their research questions
+Researchers who have a vague idea of the right model to answer their research questions and engage in a "data mining" process.
 
-To determine which variables should be included in the model, a common solution is to resort to variable selection algorithms
+To determine which variables should be included in the model, a common solution is to resort to variable selection algorithms.
 
-If the model selection method evaluates the stochastic component of the data, the model is also considered stochastic
+Often, the final model obtained through variable selection is interpreted as if it were prespecified.
 
 ---
 # Why is it a problem?
-.middle[
-the estimated results can be highly biased when the correct model is unknown prior to data analysis, and the same dataset is used for
+
+The estimated results can be highly biased when the correct model is unknown prior to data analysis, and the same data set is used for:
 
 1. variable selection; 
 2. parameter estimation; 
 3. statistical inferences
 
 These procedures discards parameter estimates from the model, and the sampling distribution of the remaining regression parameters estimates gets distorted
-]
+
 ---
 
 In a multiple regression we estimate *partial regression coefficients*
 
 `\begin{equation}
-\hat{Y} = B_{Y0 \cdot 12} + B_{Y1 \cdot 2}X_1 + B_{Y2 \cdot 1}X_2 + \varepsilon
+y_i = b_0 + b_1x_1 + b_2x_2 + \varepsilon
 \end{equation}`
 
-The regression coefficient for `\(X_i\)`, is model dependent:
+The regression coefficient for `\(x_i\)`, is model dependent:
 
 `\begin{equation}
-B_{Y1 \cdot 2} = \frac{\rho_{Y1} - \rho_{Y2}\rho_{12}}{(1 - \rho_{12}^2)} \times \frac{\sigma_Y}{\sigma_1}
+b_1 = \frac{r_{yx_1} - r_{yx_2}r_{x_1x_2}}{(1 - r_{x_1x_2}^2)} \times \frac{\sigma_y}{\sigma_{x_1}}
 \end{equation}`
 
 `\begin{equation}
-B_{Y2 \cdot 1} = \frac{\rho_{Y2} - \rho_{Y1}\rho_{21}}{(1 - \rho_{21}^2)} \times \frac{\sigma_Y}{\sigma_2}
+b_2 = \frac{r_{yx_2} - r_{yx_1}r_{x_2x_1}}{(1 - r_{x_2x_1}^2)} \times \frac{\sigma_y}{\sigma_{x_2}}
 \end{equation}`
 
-Unless we have uncorrelated predictors (i.e. `\(\rho_{12}\)` = 0 and/or `\(\rho_{21}\)` = 0), the value for any of the regression coefficients is determined by which other predictors are in the model:
+Unless we have uncorrelated predictors (i.e. `\(r_{x_1x_2}\)` = 0), the value for any of the regression coefficients is determined by which other predictors are in the model:
 
 `\begin{equation}
-B_{Y1 \cdot 2} = \frac{\rho_{Y1} - 0 \times 0}{(1 - 0^2)} \times \frac{\sigma_Y}{\sigma_1} = \rho_{Y1} \times \frac{\sigma_Y}{\sigma_1} = B_{Y1}
+b_1 = \frac{r_{yx_1} - r_{yx_2} \times 0}{(1 - 0^2)} \times \frac{\sigma_y}{\sigma_{x_1}} = r_{yx_1} \times \frac{\sigma_y}{\sigma_{x_1}}
 \end{equation}`
 
 ---
@@ -120,38 +149,43 @@ y_i = \beta_0 + \beta_1x_i + \beta_2z_i + \varepsilon_i
 
 
 ```r
+reps &lt;-  1000
 p &lt;- 2 # number of predictors
 Sigma &lt;- matrix(.5, p, p) # correlation matrix
 diag(Sigma) &lt;- 1
-n = 250 # sample size
-b0 &lt;- 10 # intercept (can be set to any value)
+n &lt;-  250 # sample size
+b0 &lt;- 0 # intercept (can be set to any value)
 betas &lt;- rep(1, 2) 
-reps = 1000
-coefs &lt;- cover &lt;- matrix(0, nrow = reps, ncol = 2) # defining the matrices to store simulation results
+error &lt;- rnorm(n, 0, sqrt(10))
+coefs_a &lt;- cover &lt;- matrix(0, nrow = reps, ncol = 2) # defining the matrices to store simulation results
 ```
+
 ---
 
 .panelset[
 .panel[.panel-name[Code]
+
 
 ```r
 for (i in seq(reps)) {
   # X is a matrix of regression coefficients
   X &lt;-  MASS::mvrnorm(n = n, rep(0, 2) , Sigma)
   # with the values randomly drawn in X, we'll estimate values for y
-  y &lt;- as.numeric(cbind(1, X) %*% c(b0, betas) + rnorm(n, 0, sqrt(10)))
+  y &lt;- as.numeric(cbind(1, X) %*% c(b0, betas) + error)
   Xy &lt;- as.data.frame( cbind(X, y))
   colnames(Xy) &lt;- c(c("x", "z"), "y")
   # fit a linear model with x and z to predict y
   fit &lt;- lm(y ~ ., data = Xy)
-  coefs[i, ] &lt;- coef(fit)[-1] # save the regression coefficients
+  coefs_a[i, ] &lt;- coef(fit)[-1] # save the regression coefficients
   cis &lt;- confint(fit)[-1,] # save the 95% CIs
   # if the true value is capture by the CI, sum 1, 0 otherwise 
   cover[i,] &lt;- ifelse(cis[,1] &lt; 1 &amp; cis[,2] &gt; 1, 1, 0)
 }
-colnames(coefs) &lt;- c("x", "z")
-coefs &lt;- as.data.frame(coefs)
+colnames(coefs_a) &lt;- c("x", "z")
+coefs_a &lt;- as.data.frame(coefs_a)
+bias &lt;- coefs_a - betas
 ```
+
 ]
 .panel[.panel-name[Results]
 
@@ -166,13 +200,13 @@ coefs &lt;- as.data.frame(coefs)
 &lt;tbody&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; x &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.951 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -0.0027163 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.941 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0053015 &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; z &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.944 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -0.0017482 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.942 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -0.0016928 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -193,13 +227,13 @@ for (i in seq(reps)) {
   y &lt;- as.numeric(cbind(1, X) %*% c(b0, betas) + rnorm(n, 0, sqrt(10)))
   Xy &lt;- as.data.frame( cbind(X, y))
   colnames(Xy) &lt;- c(c("x", "z"), "y")
-  fit &lt;- lm(y ~ x, data = Xy)
-  coefs[i, ] &lt;- coef(fit)[-1]
+* fit &lt;- lm(y ~ x, data = Xy)
+  coefs_b[i, ] &lt;- coef(fit)[-1]
   cis &lt;- confint(fit)[-1,]
   cover[i,] &lt;- ifelse(cis[1] &lt; 1 &amp; cis[2] &gt; 1, 1, 0)
 }
-colnames(coefs) &lt;- c("x", "z")
-coefs &lt;- as.data.frame(coefs)
+colnames(coefs_b) &lt;- c("x", "z")
+coefs_b &lt;- as.data.frame(coefs_b)
 ```
 ]
 .panel[.panel-name[Results]
@@ -215,13 +249,8 @@ coefs &lt;- as.data.frame(coefs)
 &lt;tbody&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; x &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.335 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.2913295 &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; z &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.335 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 0.2913295 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.322 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.3062821 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -230,9 +259,24 @@ coefs &lt;- as.data.frame(coefs)
 ]
 ]
 ---
-class: middle
+class:middle
+
+.pull-left[
+
+Estimating model parameters in the same single random sample used to find an appropriate model isn’t a good idea.
+
+Discarding `\(z\)` from our model has distorted the sampling distribution of `\(x\)`.
 
 &gt; "When a single model is not specified before the analysis begins, it is not clear what population parameter is the subject of study. And without this clarity, the reasoning behind statistical inference becomes obscure". (Berk et al., 2010)
+
+]
+
+.pull-right[
+
+
+&lt;img src="selection-bias_files/figure-html/unnamed-chunk-1-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+]
 ---
 
 # Known issues
@@ -240,58 +284,126 @@ class: middle
 .v-center[
 
 `\begin{equation}
-SE(\beta_{yx\cdot z}) = \frac{\hat{\sigma_{\varepsilon}}}{s_x \sqrt{n-1}}\sqrt{\frac{1}{1-r^2_{xy}}} 
+SE(\hat{\beta}_{yx\cdot z}) = \frac{\hat{\sigma_{\varepsilon}}}{s_x \sqrt{n-1}}\sqrt{\frac{1}{1-r^2_{xz}}} 
 \end{equation}`
 
-- Correlation
+- Collinearity
 
-- Signal-to-Noise: `\(\frac{S}{N} = \textbf{b}\Sigma\textbf{b}\sigma^{-2}\)`
+- Noise: `\(\frac{S}{N} = \textbf{b}\Sigma\textbf{b}\sigma_{\varepsilon}^{-2}\)`
 
-- Sample size
+- Sample size ($n$)
 
-- Number of predictors
+- Number of candidate predictor variables (p)
 ]
 ---
+class: scrollable-slide
 
 
+```r
+sim_bias_multi &lt;- function(reps, p, n, SNR, b, corr) {
+  
+  
+  Sigma &lt;- matrix(corr, p, p)
+  diag(Sigma) &lt;- 1
+  beta &lt;- rep(b, p)
+  names(beta) &lt;- paste0("x", 1:p)
+  b0 &lt;- 1
+  sigma_error &lt;-  sqrt(as.numeric(crossprod(beta, Sigma %*% beta) / SNR))
+  
+  rsq &lt;- NULL
+  coefs &lt;- tvals &lt;- matrix(NA, nrow = reps, ncol = p)
+  cover &lt;- matrix(0, nrow = reps, ncol = p)
+  colnames(coefs) &lt;- paste0("x", 1:p)
+  colnames(cover) &lt;- paste0("x", 1:p)
+  colnames(tvals) &lt;- paste0("x", 1:p)
+  
+  for (i in seq(reps)) {
+    
+    X &lt;-  MASS::mvrnorm(n = n, rep(0, p) , Sigma)
+    y &lt;- as.numeric(cbind(1, X) %*% c(b0, beta) + rnorm(n, 0, sigma_error))
+    Xy &lt;- as.data.frame( cbind(X, y))
+    colnames(Xy) &lt;- c(paste0("x", 1:p), "y")
+    fit &lt;- lm(y ~., data = Xy)
+    sel &lt;- step(fit, k = 2, trace = FALSE)
+    s &lt;- summary(sel)
+    tval &lt;- s$coefficients[,3][-1]
+    tvals[i, names(tval)] &lt;-  tval
+    coefs[i, names(tval)] &lt;- coef(sel)[-1]
+    rsq[i] &lt;- s$r.squared
+    cis &lt;- confint(sel)[-1,]
+    if (length(cis) &lt; 3) {
+      cover[i,names(tval)] &lt;- ifelse(cis[1] &lt; beta[names(tval)] &amp; 
+                                       cis[2] &gt; beta[names(tval)], 1, 0)
+    } else {
+      cover[i,names(tval)] &lt;- ifelse(cis[names(tval),1] &lt; beta[names(tval)] &amp; 
+                                       cis[names(tval),2] &gt; beta[names(tval)], 
+                                     1, 0)
+    }
+    
+  }
+  
+  res &lt;- list(coefs = coefs, tvals = tvals, cover = cover, 
+              bias = coefs - beta, mse = (coefs - beta)^2, rsq = rsq, 
+              corr = corr, p = p)
+  
+  res
 
-
-
-&lt;img src="selection-bias_files/figure-html/simplots-1.png" width="100%" style="display: block; margin: auto;" /&gt;
-
+}
+```
 ---
 
-# Sample Characteristics
 
+
+
+```r
+sims &lt;- furrr::future_map(seq(2, 10), 
+                          ~furrr::future_pmap(
+                            list(
+                              reps = 1000, p = .x, n = 100, SNR = 0.5, 1, 
+                              corr = seq(0.1, 0.9, by = 0.1)), sim_bias_multi))
+```
+
+&lt;img src="selection-bias_files/figure-html/simplots-1.png" width="80%" style="display: block; margin: auto;" /&gt;
 
 ---
-# Results
+# To the app
 
+https://marwin.shinyapps.io/model-selection-app/
 
----
-
-# Results
+&lt;a href="https://marwin.shinyapps.io/model-selection-app/"&gt;
+   &lt;img alt="" src="img/app.jpg"
+   width="800"&gt;
+&lt;/a&gt;
 
 ---
 # Conclusion
 .v-center[
-- We used Network analysis as an exploratory technique to identify patterns that may help interpreting empirical phenomena.
+- We identified specific characteristics of the data generating model that can potentially increase the bias in estimates obtained through variable selection.
 
-- **Worry about sleep** is a factor that can directly influence other nodes.
+- Post-model-selection sampling distribution can deviate greatly from the assumed underlying distribution.
 
-- *Belief that a poor night of sleep would ruin functioning on the next day* and *feelings that insomnia is ruining ability to enjoy life* are possible targets to for improving CBT-I.
-
-- These findings may benefit the efficiency of future intervention studies by identifying priority symptoms for treatment.
+- Potential solutions:
+  - Derive a theoretically based appropriate model 
+  - Cross-validation (training and test sample)
+  - Differentiate between confirmatory and exploratory analysis
 ]
+
 ---
+
 # References
+.small[
+Berk, R. (2010). What you can and can’t properly do with regression. *Journal of Quantitative Criminology, 26*(4), 481–487. https://doi.org/10.1007/s10940-010-9116-4
 
-Harvey, A. G. (2002). A cognitive model of insomnia. *Behaviour Research and Therapy, 40*(8), 869–893. https://doi.org/10/fwxq35
+Berk, R., Brown, L., Buja, A., Zhang, K., &amp; Zhao, L. (2013). Valid post-selection inference. *The Annals of Statistics, 41*(2), 802–837. https://doi.org/10.1214/12-AOS1077
 
-Borsboom, D., Deserno, M. K., Rhemtulla, M., Epskamp, S., Fried, E. I., McNally, R. J., Robinaugh, D. J., Perugini, M., Dalege, J., Costantini, G., Isvoranu, A.-M., Wysocki, A. C., van Borkulo, C. D., van Bork, R., &amp; Waldorp, L. J. (2021). Network analysis of multivariate data in psychological science. *Nature Reviews Methods Primers, 1*(1). https://doi.org/10.1038/s43586-021-00055-w
+Berk, R., Brown, L., &amp; Zhao, L. (2010). Statistical Inference After Model Selection. *Journal of Quantitative Criminology, 26*(2), 217–236. https://doi.org/10.1007/s10940-009-9077-7
 
-Burger, J., Isvoranu, A.-M., Lunansky, G., Haslbeck, J. M. B., Epskamp, S., Hoekstra, R. H. A., Fried, E. I., Borsboom, D., &amp; Blanken, T. F. (2022). Reporting standards for psychological network analyses in cross-sectional data. *Psychological Methods*. https://doi.org/10.1037/met0000471
+Cohen, J., &amp; Cohen, P. (1983). *Applied Multiple Regression/Correlation Analysis for the Behavioral Sciences* (2nd ed.).
 
+Harrell, F. E. (2001). *Regression modeling strategies: With applications to linear models, logistic regression, and survival analysis*. Springer-Verlag, New York.
+
+Lukacs, P. M., Burnham, K. P., &amp; Anderson, D. R. (2009). Model selection bias and Freedman's paradox. *Annals of the Institute of Statistical Mathematics, 62*(1), 117. https://doi.org/10.1007/s10463-009-0234-4
+]
 ---
 # Thank you
 
@@ -303,16 +415,17 @@ Contact:
   - Twitter: [marwincarmo](https://twitter.com/marwincarmo)
   - Linkedin: [Marwin Carmo](https://www.linkedin.com/in/marwin-carmo/)
 
-This presentation was created using `xaringanthemer` package for R. Code available at [bit.ly/viiccp-code](https://bit.ly/viiccp-code)
+This presentation was created using `xaringanthemer` package for R. Code available at https://github.com/marwincarmo/conferences/tree/main/vi-ser
 ]
 
 .pull-right[
 &lt;center&gt;
 Access the slides at
 
+&lt;img src="img/qrcodeSER.svg" width="70%" style="display: block; margin: auto;" /&gt;
 
 
-&lt;a href="https://bit.ly/viicp-dbas"&gt;bit.ly/viicp-dbas&lt;/a&gt;
+&lt;a href="https://bit.ly/ser-selbias"&gt;bit.ly/ser-selbias&lt;/a&gt;
 
 &lt;/center&gt;
 ]
@@ -324,7 +437,8 @@ Access the slides at
 "highlightStyle": "github",
 "highlightLines": true,
 "ratio": "16:9",
-"countIncrementalSlides": false
+"countIncrementalSlides": false,
+"scroll": false
 });
 if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   window.dispatchEvent(new Event('resize'));

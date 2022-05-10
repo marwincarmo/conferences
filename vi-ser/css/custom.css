@@ -19,6 +19,7 @@ h1, h2, h3 {
   font-size: 1.2rem;
 }
 
+.small { font-size: 70% }
 
 /* Title slide */
 
@@ -79,7 +80,7 @@ div.my-footer {
     position: absolute;
     bottom: 0px;
     left: 0px;
-    height: 45px;
+    height: 40px;
     width: 100%;
 }
 div.my-footer span {
