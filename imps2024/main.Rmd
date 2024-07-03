@@ -1,0 +1,99 @@
+---
+main_topsize: 0.10 #percent coverage of the poster
+main_bottomsize: 0.07
+poster_height: "100cm"
+poster_width: "70cm"
+#ESSENTIALS
+title: '**A holistic view of academic performance: Beyond Averages with MELSM and Spike-and-Slab**'
+author:
+  - name: '**Marwin Carmo**'
+    affil: 1
+    main: true
+    #orcid: '0000-0002-1099-3857'
+    email: mmcarmo@ucdavis.edu
+  - name: Donald R. Williams
+    affil: 1
+    main: true
+    email: 'drwwilliams@ucdavis.edu'
+  - name: Philippe Rast
+    affil: 1
+    main: true
+    email: 'prast@ucdavis.edu'
+affiliation:
+  - num: 1
+    address: University of California, Daviss
+# Main Colour Scheme
+primary_colour: "#022851"
+secondary_colour: "#00524C"
+body_bgcol: "#ffffff"
+#---POSTER BODY OPTIONS---#
+title_textsize: "110px"
+reference_textsize: "28px"
+caption_textsize: "32px"
+affiliation_textsize: "32px"
+#Column
+column_numbers: 2
+#Main Section
+main_fontfamily: "PT Sans"
+main_textalign: "left"
+main_textsize: "145px"
+main_textalpha: "cf"
+main_findings:
+  - "**ivd**: a package for detecting intra individual differences"
+main_textcol: "#ffffff"
+logoleft_name: img/expanded_logo_white-gold.png
+logoright_name: img/expanded_logo_white-gold.png
+logocenter_name: img/expanded_logo_white.png
+output: 
+  posterdown::posterdown_betterport:
+    highlight: NULL
+    self_contained: false
+    pandoc_args: --mathjax
+    number_sections: false
+    template: ../sono2021/poster/custom_template.html
+#bibliography: references.bib
+#link-citations: true
+#csl: apa7.csl
+nocite: '@*'
+---
+
+```{r setup, include=FALSE}
+library(ivd) # local version
+```
+
+
+# Introduction
+
+To get a more complete picture of academic achievement of a student or a school, it's important to look at both
+average performance and variability within a cluster. We adapted the mixed-effects 
+location scale model (MELSM) using the Spike and  Slab regularization technique 
+to shrink random effects to their fixed effect. 
+This allows us to identify clusters with unusually (in)consistent academic achievement. 
+
+An indicator variable ($\delta$) is included in the prior to allow switching between the spike and slab  throughout the MCMC sampling process. For each iteration, this specification allows each individual to have their own person-specific estimate or the fixed effect average. 
+
+The methods have been implemented in the R package `ivd`:
+
+```{r eval=FALSE, include=TRUE}
+devtools::install_github("consistentlybetter/ivd")
+```
+
+
+# Illustrative example
+
+The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep). It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Both, location and scale are modeled as a function of student and school SES. 
+
+For student $i$ in school $j$, we model the location as,
+
+$$
+\text{Math}_{ij} = \beta_0+\beta_1\text{SES}_{ij}^{\text{std}}+\beta_2\text{SES}_{ij}^{\text{scl}}+\beta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + u_j + e_{ij}
+$$
+$$
+e_{ij} \sim \mathcal{N} (0, \sigma_{\epsilon_{ij}}^2)
+$$
+And the scale as,
+
+$$
+\sigma_{\epsilon_{ij}}^2 = \eta_0+\eta_1\text{SES}_{ij}^{\text{std}}+\eta_2\text{SES}_{ij}^{\text{scl}}+\eta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + t_j
+$$
+#
