@@ -2,7 +2,7 @@
 main_topsize: 0.10 #percent coverage of the poster
 main_bottomsize: 0.07
 poster_height: "100cm"
-poster_width: "70cm"
+poster_width: "75cm"
 #ESSENTIALS
 title: '**A holistic view of academic performance: Beyond Averages with MELSM and Spike-and-Slab**'
 author:
@@ -39,11 +39,11 @@ main_textalign: "left"
 main_textsize: "145px"
 main_textalpha: "cf"
 main_findings:
-  - "**ivd**: a package for detecting intra individual differences"
+  - "**ivd**: an R package for individual variance detection"
 main_textcol: "#ffffff"
-logoleft_name: img/expanded_logo_white-gold.png
+logoleft_name: img/imps_logo.png
 logoright_name: img/expanded_logo_white-gold.png
-logocenter_name: img/expanded_logo_white.png
+logocenter_name: img/qrcode.svg
 output: 
   posterdown::posterdown_betterport:
     highlight: NULL
@@ -51,14 +51,18 @@ output:
     pandoc_args: --mathjax
     number_sections: false
     template: ../sono2021/poster/custom_template.html
-#bibliography: references.bib
-#link-citations: true
-#csl: apa7.csl
+bibliography: references.bib
+link-citations: true
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/apa.csl
 nocite: '@*'
 ---
 
 ```{r setup, include=FALSE}
 library(ivd) # local version
+library(ggplot2)
+out <- readRDS("out/out.rds")
+s_out <- summary(out)
+source("plotivd.R")
 ```
 
 
@@ -70,7 +74,31 @@ location scale model (MELSM) using the Spike and  Slab regularization technique
 to shrink random effects to their fixed effect. 
 This allows us to identify clusters with unusually (in)consistent academic achievement. 
 
-An indicator variable ($\delta$) is included in the prior to allow switching between the spike and slab  throughout the MCMC sampling process. For each iteration, this specification allows each individual to have their own person-specific estimate or the fixed effect average. 
+The random effects from the scale and location of the model for student $i$ in school $j$, can be modeled as, $\textbf{u}_j\sim\mathcal{N}(\textbf{0}, \boldsymbol{\Sigma})$. The covariance matrix of the random effects can be decomposed into $\boldsymbol\Sigma = \boldsymbol{\tau}\boldsymbol{\Omega\tau}'$ to specify independent priors for each element of $\boldsymbol{\tau}$ (random-effects standard deviations) and $\boldsymbol{\Omega}$ (correlation matrix among all random effects).
+
+$\boldsymbol\Omega$ can be factorized via the Cholesky $\textbf{L}$ of $\boldsymbol\Omega = \textbf{L}'\textbf{L}$. Then, $\textbf{u}_j$ can be recovered multiplying $\textbf{L}$ by the random effect standard deviations, $\boldsymbol{\tau}$, and scaling it with a standard normally distributed $\boldsymbol{z}$
+
+An indicator variable ($\delta$) is included in the prior to allow switching between the spike and slab  throughout the MCMC sampling process. For each school we obtain a probabilistic measure on whether the scale random effect is to be included or not: 
+
+$$\textbf{u}_j = \boldsymbol{\tau}_j\textbf{L}_j\color{red}{\boldsymbol{\delta}}_j\textbf{z}_j$$
+For a random intercept only model,
+
+\begin{equation}
+\label{eq:mm_delta}
+\alpha_{0j} = \begin{cases}
+\eta_{0}, & \text{if }\delta_j = 0 , \\
+\eta_{0} + u_{0j}, & \text{if }\delta_j = 1
+\end{cases}.
+\end{equation}
+
+The posterior inclusion probabilities (PIP) can then be computed as
+
+\begin{align}
+Pr(\alpha_{0j} = \eta_{0} | \textbf{Y}) = 1 - \frac{1}{S} \sum_{s = 1}^S \delta_{js},
+\end{align}
+
+where $S = \{1,...,s\}$ denotes the posterior samples and $\eta_{0}$ is the average within-person variability.
+
 
 The methods have been implemented in the R package `ivd`:
 
@@ -79,21 +107,37 @@ devtools::install_github("consistentlybetter/ivd")
 ```
 
 
+
 # Illustrative example
 
 The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep). It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Both, location and scale are modeled as a function of student and school SES. 
+``` r
+out <- ivd(
+  location_formula = math_proficiency ~ student_ses * school_ses + (1|school_id),
+  scale_formula =  ~ student_ses * school_ses + (1|school_id),
+  data = saeb,
+  niter = 2000, nburnin = 7000, WAIC = TRUE, workers = 4)
+```
 
-For student $i$ in school $j$, we model the location as,
 
-$$
-\text{Math}_{ij} = \beta_0+\beta_1\text{SES}_{ij}^{\text{std}}+\beta_2\text{SES}_{ij}^{\text{scl}}+\beta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + u_j + e_{ij}
-$$
-$$
-e_{ij} \sim \mathcal{N} (0, \sigma_{\epsilon_{ij}}^2)
-$$
-And the scale as,
+```{r plots, include=FALSE}
+p2 <- plot.ivd(out, "funnel")
+p3 <- plot.ivd(out, "outcome")
+```
 
-$$
-\sigma_{\epsilon_{ij}}^2 = \eta_0+\eta_1\text{SES}_{ij}^{\text{std}}+\eta_2\text{SES}_{ij}^{\text{scl}}+\eta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + t_j
-$$
-#
+
+```{r funnel-plot, echo=FALSE,fig.height=4, fig.width=6,dpi=300,out.width="100%", fig.cap="Funnel plot of posterior inclusion probabilities plotted against school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model."}
+p2 +
+  theme_minimal()
+```
+
+
+
+
+```{r y-plot, echo=FALSE,fig.height=4, fig.width=6,dpi=300,out.width="100%", fig.cap="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation."}
+p3 +
+  theme_minimal() +
+  labs(x = "Math achievement (z-standardized)")
+```
+
+## References

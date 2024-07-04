@@ -33,14 +33,14 @@ Here are the required style attributes for css to make this poster work :)
 -->
 <style>
 @page {
-size: 70cm 100cm;
+size: 75cm 100cm;
 margin: 0;
 padding: 0;
 }
 body {
 margin: 0px;
 padding: 0px;
-width: 70cm;
+width: 75cm;
 height: 100cm;
 text-align: justify;
 font-size: 45px;
@@ -61,7 +61,7 @@ width: 100%;
 }
 pre.sourceCode.r, pre.sourceCode.python {
 background-color: #ffffff20;
-border: solid #008EAA 1mm;
+border: solid #00524C 1mm;
 border-radius: 0.5em;
 padding: 4mm;
 margin: auto;
@@ -81,10 +81,10 @@ font-size: 20pt;
 border-radius: 2mm;
 }
 code {
-font-size: 25pt;
+font-size: 20pt;
 font-family: monospace;
-background-color: #008EAA24;
-color: #008EAA;
+background-color: #00524C24;
+color: #00524C;
 padding: 1.2mm;
 line-height: 1;
 border-radius: 2mm;
@@ -96,7 +96,7 @@ font-style: italic;
 }
 
 tbody tr:nth-child(odd) {
-    background-color: #008EAA20;
+    background-color: #00524C20;
 }
 
 .table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td{
@@ -131,7 +131,7 @@ float: left;
 padding: 0px;
 }
 .outer {
-width: 70cm;
+width: 75cm;
 height: calc(100cm *  (1 - 0.1 - 7.0e-2 - 0.01) );
 -webkit-column-count: 2; /* Chrome, Safari, Opera */
 -moz-column-count: 2; /* Firefox */
@@ -158,12 +158,12 @@ padding-top: 1em;
 padding-bottom: 1em;
 }
 span.citation {
-  color: #008EAA;
+  color: #00524C;
   font-weight: bold;
 }
 a {
 text-decoration: none;
-color: #008EAA;
+color: #00524C;
 }
 #title {
 font-size: 110px;
@@ -200,7 +200,7 @@ text-align: left;
 font-size: 30px;
 }
 .author_extra {
-color: #008EAA;
+color: #00524C;
 margin: 0;
 line-height: 85%;
 font-size: 35px;
@@ -245,13 +245,13 @@ padding-right: 8%;
 text-align: left;
 }
 .main {
-width: 70cm;
+width: 75cm;
 height: calc(100cm * 0.1);
 position: absolute;
 background-color: #022851;
 color: #ffffffcf;
 font-family: PT Sans;
-/*background-image: linear-gradient(#022851 50%,#008EAA); */
+/*background-image: linear-gradient(#022851 50%,#00524C); */
 }
 .main strong {
 color: #ffffff;
@@ -270,14 +270,14 @@ position: absolute;
 opacity: 80%;
 }
 #main-img-center {
-width: 10%;
-left: calc(70cm * 0.45);
-bottom: 0.5in;
+width: 8.5%;
+left: calc(75cm * 0.45);
+bottom: 0.1in;
 position: absolute;
 opacity: 80%;
 }
 #main-img-right {
-width: 15%;
+width: 25%;
 right: 0.5in;
 bottom: 0.4in;
 position: absolute;
@@ -324,17 +324,17 @@ font-size: 35px;
 text-decoration: none;
 }
 .poster_wrap {
-width: 70cm;
+width: 75cm;
 height: 100cm;
 padding: 0cm;
 }
 .main_bottom {
-width: 70cm;
+width: 75cm;
 height: calc(100cm * 7.0e-2);
 margin-top: calc(100cm * (1 - 7.0e-2));
 position: absolute;
 background-color: #022851;
-/*background-image: linear-gradient(#008EAA 10%, #022851);*/
+/*background-image: linear-gradient(#00524C 10%, #022851);*/
 }
 .section {
   padding-left: 10mm;
@@ -415,34 +415,66 @@ average performance and variability within a cluster. We adapted the mixed-effec
 location scale model (MELSM) using the Spike and Slab regularization technique
 to shrink random effects to their fixed effect.
 This allows us to identify clusters with unusually (in)consistent academic achievement.</p>
-<p>An indicator variable (<span class="math inline">\(\delta\)</span>) is included in the prior to allow switching between the spike and slab throughout the MCMC sampling process. For each iteration, this specification allows each individual to have their own person-specific estimate or the fixed effect average.</p>
+<p>The random effects from the scale and location of the model for student <span class="math inline">\(i\)</span> in school <span class="math inline">\(j\)</span>, can be modeled as, <span class="math inline">\(\textbf{u}_j\sim\mathcal{N}(\textbf{0}, \boldsymbol{\Sigma})\)</span>. The covariance matrix of the random effects can be decomposed into <span class="math inline">\(\boldsymbol\Sigma = \boldsymbol{\tau}\boldsymbol{\Omega\tau}&#39;\)</span> to specify independent priors for each element of <span class="math inline">\(\boldsymbol{\tau}\)</span> (random-effects standard deviations) and <span class="math inline">\(\boldsymbol{\Omega}\)</span> (correlation matrix among all random effects).</p>
+<p><span class="math inline">\(\boldsymbol\Omega\)</span> can be factorized via the Cholesky <span class="math inline">\(\textbf{L}\)</span> of <span class="math inline">\(\boldsymbol\Omega = \textbf{L}&#39;\textbf{L}\)</span>. Then, <span class="math inline">\(\textbf{u}_j\)</span> can be recovered multiplying <span class="math inline">\(\textbf{L}\)</span> by the random effect standard deviations, <span class="math inline">\(\boldsymbol{\tau}\)</span>, and scaling it with a standard normally distributed <span class="math inline">\(\boldsymbol{z}\)</span></p>
+<p>An indicator variable (<span class="math inline">\(\delta\)</span>) is included in the prior to allow switching between the spike and slab throughout the MCMC sampling process. For each school we obtain a probabilistic measure on whether the scale random effect is to be included or not:</p>
+<p><span class="math display">\[\textbf{u}_j = \boldsymbol{\tau}_j\textbf{L}_j\color{red}{\boldsymbol{\delta}}_j\textbf{z}_j\]</span>
+For a random intercept only model,</p>
+<p><span class="math display">\[\begin{equation}
+\label{eq:mm_delta}
+\alpha_{0j} = \begin{cases}
+\eta_{0}, &amp; \text{if }\delta_j = 0 , \\
+\eta_{0} + u_{0j}, &amp; \text{if }\delta_j = 1
+\end{cases}.
+\end{equation}\]</span></p>
+<p>The posterior inclusion probabilities (PIP) can then be computed as</p>
+<p><span class="math display">\[\begin{align}
+Pr(\alpha_{0j} = \eta_{0} | \textbf{Y}) = 1 - \frac{1}{S} \sum_{s = 1}^S \delta_{js},
+\end{align}\]</span></p>
+<p>where <span class="math inline">\(S = \{1,...,s\}\)</span> denotes the posterior samples and <span class="math inline">\(\eta_{0}\)</span> is the average within-person variability.</p>
 <p>The methods have been implemented in the R package <code>ivd</code>:</p>
 <pre class="r"><code>devtools::install_github(&quot;consistentlybetter/ivd&quot;)</code></pre>
 </div>
 <div id="illustrative-example" class="section level1">
 <h1>Illustrative example</h1>
 <p>The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep). It is also available as the <code>saeb</code> dataset in the <code>ivd</code> package. The outcome variable is <code>math_proficiency</code> at the end of grade 12. Both, location and scale are modeled as a function of student and school SES.</p>
-<p>For student <span class="math inline">\(i\)</span> in school <span class="math inline">\(j\)</span>, we model the location as,</p>
-<p><span class="math display">\[
-\text{Math}_{ij} = \beta_0+\beta_1\text{SES}_{ij}^{\text{std}}+\beta_2\text{SES}_{ij}^{\text{scl}}+\beta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + u_j + e_{ij}
-\]</span>
-<span class="math display">\[
-e_{ij} \sim \mathcal{N} (0, \sigma_{\epsilon_{ij}}^2)
-\]</span>
-And the scale as,</p>
-<p><span class="math display">\[
-\sigma_{\epsilon_{ij}}^2 = \eta_0+\eta_1\text{SES}_{ij}^{\text{std}}+\eta_2\text{SES}_{ij}^{\text{scl}}+\eta_3\text{SES}_{ij}^{\text{std}}\times\text{SES}_{ij}^{\text{std}} + t_j
-\]</span>
-#</p>
+<pre class="r"><code>out &lt;- ivd(
+  location_formula = math_proficiency ~ student_ses * school_ses + (1|school_id),
+  scale_formula =  ~ student_ses * school_ses + (1|school_id),
+  data = saeb,
+  niter = 2000, nburnin = 7000, WAIC = TRUE, workers = 4)</code></pre>
+<div class="figure"><span style="display:block;" id="fig:funnel-plot"></span>
+<img src="main_files/figure-html/funnel-plot-1.png" alt="Funnel plot of posterior inclusion probabilities plotted against school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model." width="100%" />
+<p class="caption">
+Figure 1: Funnel plot of posterior inclusion probabilities plotted against school’s standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model.
+</p>
+</div>
+<div class="figure"><span style="display:block;" id="fig:y-plot"></span>
+<img src="main_files/figure-html/y-plot-1.png" alt="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation." width="100%" />
+<p class="caption">
+Figure 2: Posterior inclusion probabilities plotted against school’s average math achievement in standardized units. Point size represents within-school standard deviation.
+</p>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" line-spacing="2">
+<div id="ref-rodriguez2021" class="csl-entry">
+Rodriguez, J. E., Williams, D. R., &amp; Rast, P. (2024). Who is and is not" average’"? Random effects selection with spike-and-slab priors. <em>Psychological Methods</em>. <a href="https://doi.org/10.1037/met0000535">https://doi.org/10.1037/met0000535</a>
+</div>
+<div id="ref-williams2022" class="csl-entry">
+Williams, D. R., Martin, S. R., &amp; Rast, P. (2022). Putting the individual into reliability: Bayesian testing of homogeneous within-person variance in hierarchical models. <em>Behavior Research Methods</em>, <em>54</em>(3), 1272–1290. <a href="https://doi.org/10.3758/s13428-021-01646-x">https://doi.org/10.3758/s13428-021-01646-x</a>
+</div>
+</div>
+</div>
 </div>
 
 </div>
 <div class="main">
-<p><strong>ivd</strong>: a package for detecting intra individual differences</p>
+<p><strong>ivd</strong>: an R package for individual variance detection</p>
 </div>
 <div class="main_bottom">
-<img id="main-img-left" src=img/expanded_logo_white-gold.png>
-<img id="main-img-center" src=img/expanded_logo_white.png>
+<img id="main-img-left" src=img/imps_logo.png>
+<img id="main-img-center" src=img/qrcode.svg>
 <img id="main-img-right" src=img/expanded_logo_white-gold.png>
 </div>
 </div>
