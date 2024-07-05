@@ -68,19 +68,18 @@ source("plotivd.R")
 
 # Introduction
 
-To get a more complete picture of academic achievement of a student or a school, it's important to look at both
-average performance and variability within a cluster. We adapted the mixed-effects 
-location scale model (MELSM) using the Spike and  Slab regularization technique 
-to shrink random effects to their fixed effect. 
-This allows us to identify clusters with unusually (in)consistent academic achievement. 
+To get a more complete picture of academic achievement of a student or a school, it’s important to look at both average performance and variability within a cluster. We adapted the mixed-effects location scale model
+(MELSM) using the Spike and Slab regularization technique to shrink the *scale* random effects to their fixed effect. This allows us to identify clusters with unusually (in)consistent academic achievement.
 
-The random effects from the scale and location of the model for student $i$ in school $j$, can be modeled as, $\textbf{u}_j\sim\mathcal{N}(\textbf{0}, \boldsymbol{\Sigma})$. The covariance matrix of the random effects can be decomposed into $\boldsymbol\Sigma = \boldsymbol{\tau}\boldsymbol{\Omega\tau}'$ to specify independent priors for each element of $\boldsymbol{\tau}$ (random-effects standard deviations) and $\boldsymbol{\Omega}$ (correlation matrix among all random effects).
+### Model formulation
 
-$\boldsymbol\Omega$ can be factorized via the Cholesky $\textbf{L}$ of $\boldsymbol\Omega = \textbf{L}'\textbf{L}$. Then, $\textbf{u}_j$ can be recovered multiplying $\textbf{L}$ by the random effect standard deviations, $\boldsymbol{\tau}$, and scaling it with a standard normally distributed $\boldsymbol{z}$
+The random effects from the scale and location can be modeled as, $\textbf{u}\sim\mathcal{N}(\textbf{0}, \boldsymbol{\Sigma})$. The covariance matrix of the random effects can be decomposed into $\boldsymbol\Sigma = \boldsymbol{\tau}\boldsymbol{\Omega\tau}'$ to specify independent priors for each element of $\boldsymbol{\tau}$ (random-effects standard deviations) and $\boldsymbol{\Omega}$ (correlation matrix among all random effects).
 
-An indicator variable ($\delta$) is included in the prior to allow switching between the spike and slab  throughout the MCMC sampling process. For each school we obtain a probabilistic measure on whether the scale random effect is to be included or not: 
+$\boldsymbol\Omega$ can be factorized via the Cholesky $\textbf{L}$ of $\boldsymbol\Omega = \textbf{L}'\textbf{L}$. Then, $\textbf{u}$ can be recovered multiplying $\textbf{L}$ by the random effect standard deviations, $\boldsymbol{\tau}$, and scaling it with a standard normally distributed $\boldsymbol{z}$.
 
-$$\textbf{u}_j = \boldsymbol{\tau}_j\textbf{L}_j\color{red}{\boldsymbol{\delta}}_j\textbf{z}_j$$
+An indicator variable ($\delta$) is included in the prior for the scale random effect to allow switching between the spike and slab throughout the MCMC sampling process. For each school $j$, we obtain a probabilistic measure on whether the scale random effect is to be included or not: 
+
+$$\textbf{u}_j = \boldsymbol{\tau}\textbf{L}\color{red}{\boldsymbol{\delta}}_j\textbf{z}_j$$
 For a random intercept only model,
 
 \begin{equation}
@@ -100,7 +99,7 @@ Pr(\alpha_{0j} = \eta_{0} | \textbf{Y}) = 1 - \frac{1}{S} \sum_{s = 1}^S \delta_
 where $S = \{1,...,s\}$ denotes the posterior samples and $\eta_{0}$ is the average within-person variability.
 
 
-The methods have been implemented in the R package `ivd`:
+The methods have been implemented in the R package [`ivd`](https://github.com/consistentlyBetter/ivd):
 
 ```{r eval=FALSE, include=TRUE}
 devtools::install_github("consistentlybetter/ivd")
@@ -110,14 +109,7 @@ devtools::install_github("consistentlybetter/ivd")
 
 # Illustrative example
 
-The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep). It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Both, location and scale are modeled as a function of student and school SES. 
-``` r
-out <- ivd(
-  location_formula = math_proficiency ~ student_ses * school_ses + (1|school_id),
-  scale_formula =  ~ student_ses * school_ses + (1|school_id),
-  data = saeb,
-  niter = 2000, nburnin = 7000, WAIC = TRUE, workers = 4)
-```
+The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil's National Institute for Educational Studies and Research (Inep). It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Location and scale are modeled as a function of student and school SES. 
 
 
 ```{r plots, include=FALSE}
@@ -126,7 +118,7 @@ p3 <- plot.ivd(out, "outcome")
 ```
 
 
-```{r funnel-plot, echo=FALSE,fig.height=4, fig.width=6,dpi=300,out.width="100%", fig.cap="Funnel plot of posterior inclusion probabilities plotted against school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model."}
+```{r funnel-plot, echo=FALSE,dpi=300,out.width="80%", fig.align='center', fig.cap="Funnel plot of posterior inclusion probabilities and school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model."}
 p2 +
   theme_minimal()
 ```
@@ -134,10 +126,15 @@ p2 +
 
 
 
-```{r y-plot, echo=FALSE,fig.height=4, fig.width=6,dpi=300,out.width="100%", fig.cap="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation."}
+```{r y-plot, echo=FALSE, dpi=300,out.width="80%",fig.align='center', fig.cap="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation."}
 p3 +
   theme_minimal() +
   labs(x = "Math achievement (z-standardized)")
 ```
+# Discussion
+
+- Individual variance detection analysis suggests that some schools have students consistently performing above the average, while others have an average mean score but with greater-than-average variability. Inconsistent performance may reflect unaccounted factors influencing learning.
+
+- The IVD method could also be used to assess academic performance throughout the year and uncover information relevant to providing more specific school or student support.
 
 ## References
