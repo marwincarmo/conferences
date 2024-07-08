@@ -33,15 +33,15 @@ Here are the required style attributes for css to make this poster work :)
 -->
 <style>
 @page {
-size: 75cm 100cm;
+size: 84.1cm 118.9cm;
 margin: 0;
 padding: 0;
 }
 body {
 margin: 0px;
 padding: 0px;
-width: 75cm;
-height: 100cm;
+width: 84.1cm;
+height: 118.9cm;
 text-align: justify;
 font-size: 45px;
 line-height: 1.05;
@@ -131,8 +131,8 @@ float: left;
 padding: 0px;
 }
 .outer {
-width: 75cm;
-height: calc(100cm *  (1 - 0.1 - 7.0e-2 - 0.01) );
+width: 84.1cm;
+height: calc(118.9cm *  (1 - 0.1 - 7.5e-2 - 0.01) );
 -webkit-column-count: 2; /* Chrome, Safari, Opera */
 -moz-column-count: 2; /* Firefox */
 column-count: 2;
@@ -153,7 +153,7 @@ column-rule-style: none;
 column-rule-color: black;
 background-color: #ffffff;
 font-family: Rasa;
-margin-top: calc(100cm *  0.1 );
+margin-top: calc(118.9cm *  0.1 );
 padding-top: 1em;
 padding-bottom: 1em;
 }
@@ -245,8 +245,8 @@ padding-right: 8%;
 text-align: left;
 }
 .main {
-width: 75cm;
-height: calc(100cm * 0.1);
+width: 84.1cm;
+height: calc(118.9cm * 0.1);
 position: absolute;
 background-color: #022851;
 color: #ffffffcf;
@@ -265,13 +265,13 @@ color: #ffffffcf;
 #main-img-left {
 width: 25%;
 left: 0.5in;
-bottom: 0.2in;
+bottom: 0.4in;
 position: absolute;
 opacity: 80%;
 }
 #main-img-center {
-width: 8.5%;
-left: calc(75cm * 0.45);
+width: 10.0%;
+left: calc(84.1cm * 0.45);
 bottom: 0.1in;
 position: absolute;
 opacity: 80%;
@@ -279,12 +279,12 @@ opacity: 80%;
 #main-img-right {
 width: 25%;
 right: 0.5in;
-bottom: 0.4in;
+bottom: 0.55in;
 position: absolute;
 opacity: 80%;
 }
 .main p {
-font-size: 145px;
+font-size: 170px;
 font-family: PT Sans;
 text-align: left;
 margin: 0;
@@ -324,14 +324,14 @@ font-size: 35px;
 text-decoration: none;
 }
 .poster_wrap {
-width: 75cm;
-height: 100cm;
+width: 84.1cm;
+height: 118.9cm;
 padding: 0cm;
 }
 .main_bottom {
-width: 75cm;
-height: calc(100cm * 7.0e-2);
-margin-top: calc(100cm * (1 - 7.0e-2));
+width: 84.1cm;
+height: calc(118.9cm * 7.5e-2);
+margin-top: calc(118.9cm * (1 - 7.5e-2));
 position: absolute;
 background-color: #022851;
 /*background-image: linear-gradient(#00524C 10%, #022851);*/
@@ -437,15 +437,23 @@ Pr(\alpha_{0j} = \eta_{0} | \textbf{Y}) = 1 - \frac{1}{S} \sum_{s = 1}^S \delta_
 </div>
 <div id="illustrative-example" class="section level1">
 <h1>Illustrative example</h1>
-<p>The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep). It is also available as the <code>saeb</code> dataset in the <code>ivd</code> package. The outcome variable is <code>math_proficiency</code> at the end of grade 12. Location and scale are modeled as a function of student and school SES.</p>
+<p>The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil’s National Institute for Educational Studies and Research (Inep) in 2021. It is also available as the <code>saeb</code> dataset in the <code>ivd</code> package. The outcome variable is <code>math_proficiency</code> at the end of grade 12. Location and scale are modeled as a function of student and school SES.</p>
+<pre class="r"><code>out &lt;- ivd(location_formula = math_proficiency ~ student_ses * school_ses + (1|school_id),
+           scale_formula =  ~ student_ses * school_ses + (1|school_id),
+           data = saeb,
+           niter = 5000, nburnin = 5000, WAIC = TRUE, workers = 4)</code></pre>
+<p><br></p>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
 <div class="figure" style="text-align: center"><span style="display:block;" id="fig:funnel-plot"></span>
-<img src="main_files/figure-html/funnel-plot-1.png" alt="Funnel plot of posterior inclusion probabilities and school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model." width="80%" />
+<img src="main_files/figure-html/funnel-plot-1.png" alt="Funnel plot of posterior inclusion probabilities and school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model." width="100%" />
 <p class="caption">
 Figure 1: Funnel plot of posterior inclusion probabilities and school’s standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model.
 </p>
 </div>
 <div class="figure" style="text-align: center"><span style="display:block;" id="fig:y-plot"></span>
-<img src="main_files/figure-html/y-plot-1.png" alt="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation." width="80%" />
+<img src="main_files/figure-html/y-plot-1.png" alt="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation." width="100%" />
 <p class="caption">
 Figure 2: Posterior inclusion probabilities plotted against school’s average math achievement in standardized units. Point size represents within-school standard deviation.
 </p>
@@ -456,16 +464,17 @@ Figure 2: Posterior inclusion probabilities plotted against school’s average m
 <ul>
 <li><p>Individual variance detection analysis suggests that some schools have students consistently performing above the average, while others have an average mean score but with greater-than-average variability. Inconsistent performance may reflect unaccounted factors influencing learning.</p></li>
 <li><p>The IVD method could also be used to assess academic performance throughout the year and uncover information relevant to providing more specific school or student support.</p></li>
+<li><p>The <code>ivd</code> package is an accessible tool for applying the spike-and-slab prior to the scale random effects in mixed-effects models for individual differences research. It aids researchers in identifying units that deviate from the average variance effect.</p></li>
 </ul>
-<div id="references" class="section level2 unnumbered">
-<h2>References</h2>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent" line-spacing="2">
 <div id="ref-rodriguez2021" class="csl-entry">
 Rodriguez, J. E., Williams, D. R., &amp; Rast, P. (2024). Who is and is not" average’"? Random effects selection with spike-and-slab priors. <em>Psychological Methods</em>. <a href="https://doi.org/10.1037/met0000535">https://doi.org/10.1037/met0000535</a>
 </div>
 <div id="ref-williams2022" class="csl-entry">
 Williams, D. R., Martin, S. R., &amp; Rast, P. (2022). Putting the individual into reliability: Bayesian testing of homogeneous within-person variance in hierarchical models. <em>Behavior Research Methods</em>, <em>54</em>(3), 1272–1290. <a href="https://doi.org/10.3758/s13428-021-01646-x">https://doi.org/10.3758/s13428-021-01646-x</a>
-</div>
 </div>
 </div>
 </div>

@@ -1,8 +1,8 @@
 ---
 main_topsize: 0.10 #percent coverage of the poster
-main_bottomsize: 0.07
-poster_height: "100cm"
-poster_width: "75cm"
+main_bottomsize: 0.075
+poster_height: "118.9cm"
+poster_width: "84.1cm"
 #ESSENTIALS
 title: '**A holistic view of academic performance: Beyond Averages with MELSM and Spike-and-Slab**'
 author:
@@ -36,7 +36,7 @@ column_numbers: 2
 #Main Section
 main_fontfamily: "PT Sans"
 main_textalign: "left"
-main_textsize: "145px"
+main_textsize: "170px"
 main_textalpha: "cf"
 main_findings:
   - "**ivd**: an R package for individual variance detection"
@@ -109,8 +109,17 @@ devtools::install_github("consistentlybetter/ivd")
 
 # Illustrative example
 
-The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil's National Institute for Educational Studies and Research (Inep). It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Location and scale are modeled as a function of student and school SES. 
+The data comes from The Basic Education Evaluation System (Saeb) conducted by Brazil's National Institute for Educational Studies and Research (Inep) in 2021. It is also available as the `saeb` dataset in the `ivd` package. The outcome variable is `math_proficiency` at the end of grade 12. Location and scale are modeled as a function of student and school SES. 
 
+```r
+out <- ivd(location_formula = math_proficiency ~ student_ses * school_ses + (1|school_id),
+           scale_formula =  ~ student_ses * school_ses + (1|school_id),
+           data = saeb,
+           niter = 5000, nburnin = 5000, WAIC = TRUE, workers = 4)
+```
+<br>
+
+# Results
 
 ```{r plots, include=FALSE}
 p2 <- plot.ivd(out, "funnel")
@@ -118,7 +127,7 @@ p3 <- plot.ivd(out, "outcome")
 ```
 
 
-```{r funnel-plot, echo=FALSE,dpi=300,out.width="80%", fig.align='center', fig.cap="Funnel plot of posterior inclusion probabilities and school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model."}
+```{r funnel-plot, echo=FALSE,dpi=300,out.width="100%", fig.align='center', fig.cap="Funnel plot of posterior inclusion probabilities and school's standard deviations. Higher PIP values express more evidence for the random effect of a given school to be included in the model."}
 p2 +
   theme_minimal()
 ```
@@ -126,7 +135,7 @@ p2 +
 
 
 
-```{r y-plot, echo=FALSE, dpi=300,out.width="80%",fig.align='center', fig.cap="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation."}
+```{r y-plot, echo=FALSE, dpi=300,out.width="100%",fig.align='center', fig.cap="Posterior inclusion probabilities plotted against school's average math achievement in standardized units. Point size represents within-school standard deviation."}
 p3 +
   theme_minimal() +
   labs(x = "Math achievement (z-standardized)")
@@ -137,4 +146,6 @@ p3 +
 
 - The IVD method could also be used to assess academic performance throughout the year and uncover information relevant to providing more specific school or student support.
 
-## References
+- The `ivd` package is an accessible tool for applying the spike-and-slab prior to the scale random effects in mixed-effects models for individual differences research. It aids researchers in identifying units that deviate from the average variance effect.
+
+# References
