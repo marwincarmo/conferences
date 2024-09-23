@@ -132,11 +132,21 @@ plot.ivd <- function(x, type = "pip", pip_level = .75, variable = NULL, col_id =
   
   ## Create tau locally
   if(no_ranef_s == 1) {
+    # Extract the posterior mean and 95% credible interval for each random effect:
+    posterior_samples <- do.call(rbind, lapply(.extract_to_mcmc(obj), FUN = function(x) x[, scale_ranef_pos]))
     ## Extract the posterior mean of the fixed effect:
     zeta <- mean( unlist( lapply(.extract_to_mcmc( obj ), FUN = function(x) mean(x[, "zeta[1]"])) ) )
     ## Extract the posterior mean of each random effect:
-    u <- colMeans(do.call(rbind, lapply(.extract_to_mcmc( obj ), FUN = function(x) colMeans(x[, scale_ranef_pos]))))
+    u <- colMeans(posterior_samples)
+    # 95% credible intervals:
+    u_median <- apply(posterior_samples, 2, function(x) quantile(x, probs = 0.5))
+    u_lower <- apply(posterior_samples, 2, function(x) quantile(x, probs = 0.025))
+    u_upper <- apply(posterior_samples, 2, function(x) quantile(x, probs = 0.975))
+    
     tau <- exp(zeta + u )
+    tau_lower <- exp(zeta + u_lower)
+    tau_upper <- exp(zeta + u_upper)
+    
   } else if (no_ranef_s > 1 ) {
     ## if(is.null(variable)) {
     ##   ## Prompt user for action when there are multiple random effects
@@ -170,66 +180,141 @@ plot.ivd <- function(x, type = "pip", pip_level = .75, variable = NULL, col_id =
     print("Invalid action specified. Exiting.")
   }
   
+  ## Add tau to data frame -- ensure correct order
+  df_pip <-
+    cbind(df_pip[order(df_pip$id), ], tau )
+  ## Make nudge scale dependent:
+  ## (not used)
+  ord <- (max(df_pip$ordered ) - min(df_pip$ordered ))/50
+  nx <- (max(df_pip$tau ) - min(df_pip$tau ))/50
+  
   if( type == "pip") {
     ## 
     plt <- ggplot(df_pip, aes(x = ordered, y = pip)) +
-      geom_point(data = subset(df_pip, pip < pip_level), alpha = .4 , size = 3) +
-      geom_point(data = subset(df_pip, pip >= pip_level),
-                 aes(color = as.factor(id)), size = 3) +
-      geom_text(data = subset(df_pip, pip >= pip_level),
-                aes(label = id),
-                nudge_x = -10,
-                size = 3) +
+      geom_point(data = subset(df_pip, pip < pip_level), 
+                 alpha = .3, size = 4, stroke = 1, shape = 21, , fill = "black", color = "black") +
+      geom_point(data = subset(df_pip, pip >= pip_level), position = "jitter", 
+                 aes(fill = pip), size = 4, stroke = 1, shape = 21, color = "black") +
+      # geom_point(data = subset(df_pip, pip < pip_level), alpha = .3 , size = 4) +
+      # geom_point(data = subset(df_pip, pip >= pip_level),
+      #            aes(color = pip), #as.factor(id))
+      #            , size = 4) +
+      # geom_text(data = subset(df_pip, pip >= pip_level),
+      #           aes(label = id),
+      #           nudge_x = -4.5,
+      #           #nudge_y = -.009,
+      #           size = 4) +
       geom_abline(intercept = pip_level, slope = 0, lty =  3)+
-      geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
+      #geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
       ylim(c(0, 1 ) ) + ggtitle(variable )+
-      guides(color = "none")
+      scale_fill_viridis_c(option = "plasma", alpha = 0.8, begin = 0.5) +
+      guides(fill = "none")
     print(plt )
   } else if ( type == "funnel" ) {
     
-    ## Add tau to data frame -- ensure correct order
-    df_funnel <-
-      cbind(df_pip[order(df_pip$id), ], tau )
-    ## Make nudge scale dependent:
-    ## (not used)
-    nx <- (max(df_funnel$tau ) - min(df_funnel$tau ))/50
+    # ## Add tau to data frame -- ensure correct order
+    # df_funnel <-
+    #   cbind(df_pip[order(df_pip$id), ], tau )
     
-    plt <- ggplot(df_funnel, aes(x = tau, y = pip)) +
-      geom_point(data = subset(df_funnel, pip < pip_level), alpha = .4, size=3) +
-      geom_point(data = subset(df_funnel, pip >= pip_level),
-                 aes(color = as.factor(id)), size=3) +
+    plt <- ggplot(df_pip, aes(x = tau, y = pip)) +
+      geom_point(data = subset(df_pip, pip < pip_level), 
+                 alpha = .3, size = 4, stroke = 1, shape = 21, fill = "black", color = "black") +
+      geom_point(data = subset(df_pip, pip >= pip_level),
+                 aes(fill = pip), size = 4, shape = 21,  position = "jitter") + 
+      # geom_point(data = subset(df_funnel, pip < pip_level), alpha = .4, size=3) +
+      # geom_point(data = subset(df_funnel, pip >= pip_level),
+      #            aes(color = as.factor(id)), size=3) +
       labs(x = "Within-Cluster SD") +
-      geom_text(data = subset(df_funnel, pip >= pip_level),
+      geom_text(data = subset(df_pip, pip >= pip_level),
                 aes(label = id),
-                nudge_x = -.005,
-                size = 3)+
+                nudge_x = -nx,
+                #nudge_x = -.005,
+                size = 4)+
       geom_abline(intercept = pip_level, slope = 0, lty =  3)+
-      geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
+      #geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
       ylim(c(0, 1 ) )+ggtitle(variable) +
-      guides(color = "none")
+      scale_fill_viridis_c(option = "plasma", alpha = 0.8, begin = 0.5) +
+      guides(fill = "none")
     print( plt )
   } else if ( type == "outcome") {
     df_y <- merge(df_pip,
                   aggregate(Y ~ group_id, data = obj$Y, FUN = mean),
                   by.x = "id", by.y = "group_id")
     df_y$tau <- tau
+    nx <- (max(df_y$tau ) - min(df_y$tau ))/50
     ## 
     plt <- ggplot(df_y, aes(x = Y, y = pip)) +
-      geom_point(data = subset(df_y, pip < pip_level), aes(size=tau), alpha = .4) +
+      geom_point(data = subset(df_y, pip < pip_level), 
+                 alpha = .3, stroke = 1, aes(size=tau),
+                 shape = 21, fill = "black", color = "black") +
       geom_point(data = subset(df_y, pip >= pip_level),
-                 aes(color = as.factor(id), size = tau)) +
+                 aes(fill = pip, size = tau),  shape = 21, color = "black") +
+      #geom_point(data = subset(df_y, pip < pip_level), aes(size=tau), alpha = .4) +
+      # geom_point(data = subset(df_y, pip >= pip_level),
+      #            aes(color = as.factor(id), size = tau)) +
       geom_text(data = subset(df_y, pip >= pip_level),
                 aes(label = id),
-                nudge_x = -.07,
-                size = 3)+
+                nudge_x = -.05,
+                size = 4)+
       geom_abline(intercept = pip_level, slope = 0, lty =  3)+
-      geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
+      #geom_abline(intercept = pip_level - .5, slope = 0, lty =  3)+
       ylim(c(0, 1 ) ) + 
       ggtitle(variable ) +
-      guides(size = "none", color="none")
+      #scale_fill_manual(values = distinct_colors) +
+      scale_fill_viridis_c(option = "plasma", alpha = 0.8, begin = 0.5) +
+      guides(size = "none", fill="none")
     print(plt )
-  } else {
+  } else if ( type == "caterpillar") {
+    
+    u_summary <- data.frame(
+      RandomEffect = 1:length(u),
+      Median = u_median,
+      Lower95CI = u_lower,
+      Upper95CI = u_upper,
+      pip = df_pip$pip
+    )
+    
+    u_ordered <- u_summary[order(u_summary[, "Median"]), ]
+    u_ordered$ordered <- 1:nrow(u_summary )
+    
+    plt <- ggplot(u_ordered, aes(x = ordered, y = Median, color = Median)) +
+      geom_pointrange(
+        aes(ymin = Lower95CI, ymax = Upper95CI),
+        size = 0.7,  # Thicker lines for better visibility
+        linetype = "solid",
+        color = "black",
+        alpha = 0.7
+      ) +
+      geom_point(data = subset(u_ordered, pip < pip_level), 
+                 size = 2.5, stroke = 1, aes(size=tau),
+                 shape = 21, fill = "black", color = "black") +
+      geom_point(data = subset(u_ordered, pip >= pip_level),
+                 aes(fill = factor(category)), size = 2.5,  shape = 21, color = "black") +
+      # geom_point(
+      #   size = 2.5,  # Larger points
+      #   stroke = 1,  # Stroke width
+      #   shape = 21,  # Shape 21 allows for both fill and stroke
+      #   aes(fill = Median),  # Set fill color to white for contrast
+      #   color = "black"
+      #   ) +
+      #viridis::scale_fill_viridis(option = "D", direction = 1) +
+      #scale_fill_viridis_c(option = "plasma", alpha = 0.8, begin = 0.5) +
+      scale_fill_manual(values = distinct_colors) +
+      geom_abline(intercept = 0, slope = 0, lty =  3) +
+      guides(color = "none", fill = "none")
+      
+      
+      
+      # ggplot(u_ordered, aes(x = ordered, y = Mean)) +
+      # geom_point() +  # Plot the mean of tau
+      # geom_errorbar(aes(ymin = Lower95CI, ymax = Upper95CI), width = 0.2)+
+      # viridis::scale_color_viridis(option = "D", direction = 1)
+    print(plt)
+    } else {
     stop("Invalid plot type. Please choose between 'pip', 'funnel' or 'outcome'.")
   }
   return(invisible(plt))  
 }
+distinct_colors <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+
+u_ordered$category <- cut(u_ordered$pip, breaks = nrow(u_ordered))
